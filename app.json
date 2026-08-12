@@ -1,11 +1,15 @@
 {
   "expo": {
-    "name": "budgetr-temp",
-    "slug": "budgetr-temp",
+    "name": "budgetr",
+    "slug": "budgetr",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "scheme": "budgetr",
+    "plugins": [
+      "expo-router"
+    ],
     "ios": {
       "supportsTablet": true
     },
