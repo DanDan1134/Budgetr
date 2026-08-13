@@ -48,6 +48,60 @@ export const initDatabase = async (): Promise<void> => {
       );
     `);
 
+    await database.execAsync(`
+      CREATE TABLE IF NOT EXISTS current_period (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        started_at TEXT NOT NULL
+      );
+    `);
+
+    await database.execAsync(`
+      CREATE TABLE IF NOT EXISTS periods (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        started_at TEXT NOT NULL,
+        closed_at TEXT NOT NULL,
+        total_budget REAL NOT NULL,
+        total_allocated REAL NOT NULL,
+        total_spent REAL NOT NULL,
+        total_saved REAL NOT NULL,
+        spending_count INTEGER NOT NULL,
+        category_count INTEGER NOT NULL
+      );
+    `);
+
+    await database.execAsync(`
+      CREATE TABLE IF NOT EXISTS period_categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        period_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        allocated_amount REAL NOT NULL,
+        spent_amount REAL NOT NULL,
+        FOREIGN KEY (period_id) REFERENCES periods(id) ON DELETE CASCADE
+      );
+    `);
+
+    await database.execAsync(`
+      CREATE TABLE IF NOT EXISTS period_spendings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        period_id INTEGER NOT NULL,
+        category_name TEXT NOT NULL,
+        description TEXT,
+        amount REAL NOT NULL,
+        spent_at TEXT NOT NULL,
+        FOREIGN KEY (period_id) REFERENCES periods(id) ON DELETE CASCADE
+      );
+    `);
+
+    const currentPeriod = await database.getFirstAsync<{ started_at: string }>(
+      'SELECT started_at FROM current_period WHERE id = 1'
+    );
+    if (!currentPeriod) {
+      await database.runAsync(
+        'INSERT INTO current_period (id, started_at) VALUES (1, ?)',
+        [new Date().toISOString()]
+      );
+    }
+
     db = database;
     console.log('Database initialized successfully');
   })();

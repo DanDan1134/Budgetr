@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { StyleSheet, RefreshControl, Alert } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Colors, Spacing } from '../constants/theme';
 import { ScreenScroll } from '../components/ScreenScroll';
 import { BudgetSummary } from '../components/BudgetSummary';
@@ -25,6 +25,7 @@ import {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ period?: string }>();
   const [budget, setBudget] = useState<Budget | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [spendings, setSpendings] = useState<Spending[]>([]);
@@ -58,7 +59,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [])
+    }, [params.period])
   );
 
   const onRefresh = () => {

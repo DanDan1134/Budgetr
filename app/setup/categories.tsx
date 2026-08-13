@@ -13,6 +13,7 @@ import { ScreenScroll } from '../../components/ScreenScroll';
 import { AllocationToggle } from '../../components/AllocationToggle';
 import { initDatabase } from '../../services/database';
 import { createBudget } from '../../services/budgetService';
+import { startCurrentPeriod } from '../../services/historyService';
 import { createCategories, CategoryInput } from '../../services/categoryService';
 import { calculateAllocatedAmount } from '../../utils/calculations';
 
@@ -119,6 +120,7 @@ export default function CategoriesScreen() {
       }));
 
       await createCategories(budgetId, budgetAmount, categoryInputs);
+      await startCurrentPeriod();
 
       router.replace('/');
     } catch (error) {

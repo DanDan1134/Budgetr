@@ -15,6 +15,7 @@ import { initDatabase } from '../services/database';
 import { deleteBudget } from '../services/budgetService';
 import { deleteAllCategories } from '../services/categoryService';
 import { deleteAllSpendings } from '../services/spendingService';
+import { closeCurrentPeriod } from '../services/historyService';
 
 export default function Layout() {
   const router = useRouter();
@@ -41,6 +42,7 @@ export default function Layout() {
           style: 'destructive',
           onPress: async () => {
             try {
+              await closeCurrentPeriod();
               await deleteBudget();
               await deleteAllCategories();
               await deleteAllSpendings();
@@ -58,16 +60,20 @@ export default function Layout() {
   const handleNewPeriod = () => {
     Alert.alert(
       'Start New Period',
-      'This will reset all spending records but keep your budget and categories. Continue?',
+      'This will save this period to History, then reset spendings. Budget and categories stay. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Continue',
           onPress: async () => {
             try {
+              await closeCurrentPeriod();
               await deleteAllSpendings();
-              router.replace('/');
-              Alert.alert('Success', 'New budgeting period started!');
+              router.replace({
+                pathname: '/',
+                params: { period: Date.now().toString() },
+              });
+              Alert.alert('Success', 'Period saved to History. Spendings were reset.');
             } catch (error) {
               console.error('Error starting new period:', error);
               Alert.alert('Error', 'Failed to start new period');
@@ -105,6 +111,17 @@ export default function Layout() {
           />
         </>
       )}
+      <DrawerItem
+        label="History"
+        focused={pathname === '/history'}
+        onPress={() => {
+          props.navigation.closeDrawer();
+          router.push('/history');
+        }}
+        activeTintColor={Colors.primaryGreen}
+        inactiveTintColor={Colors.textSecondary}
+        labelStyle={styles.drawerLabel}
+      />
     </DrawerContentScrollView>
   );
 
@@ -142,6 +159,15 @@ export default function Layout() {
         options={{
           drawerLabel: 'Home',
           title: 'Budgetr',
+          headerShown: true,
+        }}
+      />
+      <Drawer.Screen
+        name="history"
+        options={{
+          drawerLabel: () => null,
+          title: 'History',
+          drawerItemStyle: { display: 'none' },
           headerShown: true,
         }}
       />

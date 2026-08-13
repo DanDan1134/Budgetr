@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'expo-router';
 import { Colors, FontSizes, Spacing } from '../constants/theme';
 import {
   clearPreviewBudget,
+  loadSampleHistoryData,
   loadSamplePreviewData,
 } from '../services/webPreviewStore';
 
@@ -11,6 +12,7 @@ const pages = [
   { key: 'setup-budget', label: 'Setup Budget', path: '/setup/budget' },
   { key: 'setup-categories', label: 'Setup Categories', path: '/setup/categories' },
   { key: 'home', label: 'Home', path: '/' },
+  { key: 'history', label: 'History', path: '/history' },
   { key: 'not-found', label: '404', path: '/missing-page' },
 ] as const;
 
@@ -40,6 +42,12 @@ export const WebPreviewNav = () => {
       return;
     }
 
+    if (key === 'history') {
+      loadSampleHistoryData();
+      router.replace('/history');
+      return;
+    }
+
     router.replace('/missing-page');
   };
 
@@ -51,6 +59,7 @@ export const WebPreviewNav = () => {
           (page.key === 'home' && pathname === '/') ||
           (page.key === 'setup-budget' && pathname === '/setup/budget') ||
           (page.key === 'setup-categories' && pathname === '/setup/categories') ||
+          (page.key === 'history' && pathname === '/history') ||
           (page.key === 'not-found' && pathname === '/missing-page');
 
         return (
