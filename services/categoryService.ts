@@ -38,6 +38,14 @@ export const createCategories = async (
   }
 };
 
+export const createCategory = async (
+  budgetId: number,
+  budgetTotal: number,
+  category: CategoryInput
+): Promise<void> => {
+  await createCategories(budgetId, budgetTotal, [category]);
+};
+
 export const getCategories = async (): Promise<Category[]> => {
   const db = getDatabase();
   
@@ -46,6 +54,12 @@ export const getCategories = async (): Promise<Category[]> => {
   );
   
   return result;
+};
+
+export const deleteCategory = async (id: number): Promise<void> => {
+  const db = getDatabase();
+  await db.runAsync('DELETE FROM spendings WHERE category_id = ?', [id]);
+  await db.runAsync('DELETE FROM categories WHERE id = ?', [id]);
 };
 
 export const deleteAllCategories = async (): Promise<void> => {

@@ -5,13 +5,13 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../../constants/theme';
+import { ScreenScroll } from '../../components/ScreenScroll';
+import { AllocationToggle } from '../../components/AllocationToggle';
+import { initDatabase } from '../../services/database';
 import { createBudget } from '../../services/budgetService';
 import { createCategories, CategoryInput } from '../../services/categoryService';
 import { calculateAllocatedAmount } from '../../utils/calculations';
@@ -26,7 +26,8 @@ interface CategoryRow {
 export default function CategoriesScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const budgetAmount = parseFloat(params.budgetAmount as string);
+  const parsedBudget = parseFloat(params.budgetAmount as string);
+  const budgetAmount = Number.isFinite(parsedBudget) ? parsedBudget : 2000;
 
   const [categories, setCategories] = useState<CategoryRow[]>([
     { id: '1', name: '', allocationType: 'percentage', allocationValue: '' },
@@ -56,14 +57,14 @@ export default function CategoriesScreen() {
     );
   };
 
-  const toggleAllocationType = (id: string) => {
+  const setAllocationType = (id: string, allocationType: CategoryRow['allocationType']) => {
     setCategories(
       categories.map((cat) =>
         cat.id === id
           ? {
               ...cat,
-              allocationType: cat.allocationType === 'percentage' ? 'dollar' : 'percentage',
-              allocationValue: '',
+              allocationType,
+              allocationValue: cat.allocationType === allocationType ? cat.allocationValue : '',
             }
           : cat
       )
@@ -108,6 +109,7 @@ export default function CategoriesScreen() {
 
   const saveBudget = async (validCategories: CategoryRow[]) => {
     try {
+      await initDatabase();
       const budgetId = await createBudget(budgetAmount);
 
       const categoryInputs: CategoryInput[] = validCategories.map((cat) => ({
@@ -129,11 +131,7 @@ export default function CategoriesScreen() {
   const remaining = budgetAmount - totalAllocated;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+    <ScreenScroll style={styles.container} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Assign Categories</Text>
         <Text style={styles.subtitle}>
           Budget: ${budgetAmount.toFixed(2)}
@@ -159,14 +157,10 @@ export default function CategoriesScreen() {
             />
 
             <View style={styles.allocationRow}>
-              <TouchableOpacity
-                style={styles.typeToggle}
-                onPress={() => toggleAllocationType(category.id)}
-              >
-                <Text style={styles.typeToggleText}>
-                  {category.allocationType === 'percentage' ? '%' : '$'}
-                </Text>
-              </TouchableOpacity>
+              <AllocationToggle
+                value={category.allocationType}
+                onChange={(type) => setAllocationType(category.id, type)}
+              />
 
               <TextInput
                 style={[styles.input, styles.allocationInput]}
@@ -220,8 +214,7 @@ export default function CategoriesScreen() {
         <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
           <Text style={styles.finishButtonText}>Finish Setup</Text>
         </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </ScreenScroll>
   );
 }
 
@@ -229,9 +222,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-  },
-  scrollView: {
-    flex: 1,
   },
   scrollContent: {
     padding: Spacing.lg,
@@ -252,12 +242,12 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.md,
+    gap: Spacing.sm,
   },
   categoryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
   },
   categoryLabel: {
     fontSize: FontSizes.md,
@@ -273,28 +263,16 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: Spacing.md,
+    height: 50,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 0,
     color: Colors.textPrimary,
     fontSize: FontSizes.md,
-    marginBottom: Spacing.sm,
   },
   allocationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  typeToggle: {
-    backgroundColor: Colors.primaryGreen,
-    borderRadius: BorderRadius.md,
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.sm,
-  },
-  typeToggleText: {
-    color: Colors.textPrimary,
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
+    gap: Spacing.sm,
   },
   allocationInput: {
     flex: 1,

@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Modal,
+  Pressable,
+} from 'react-native';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 import { Category } from '../services/categoryService';
 
@@ -13,15 +21,19 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
   const [selectedCategory, setSelectedCategory] = useState<number | null>(
     categories.length > 0 ? categories[0].id : null
   );
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+
+  const selectedName =
+    categories.find((category) => category.id === selectedCategory)?.name ?? 'Select a category';
 
   const handleAdd = () => {
     if (!selectedCategory) {
       Alert.alert('Error', 'Please select a category');
       return;
     }
-    
+
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       Alert.alert('Error', 'Please enter a valid amount');
@@ -36,7 +48,9 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
   if (categories.length === 0) {
     return (
       <View style={styles.container}>
-        <Text style={styles.noCategories}>No categories available. Please set up your budget first.</Text>
+        <Text style={styles.noCategories}>
+          No categories available. Please set up your budget first.
+        </Text>
       </View>
     );
   }
@@ -44,27 +58,53 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Add Spending</Text>
-      
+
       <View style={styles.pickerContainer}>
         <Text style={styles.label}>Category</Text>
-        <View style={styles.pickerWrapper}>
-          <Picker
-            selectedValue={selectedCategory}
-            onValueChange={(value) => setSelectedCategory(value)}
-            style={styles.picker}
-            dropdownIconColor={Colors.textPrimary}
-          >
-            {categories.map((category) => (
-              <Picker.Item
-                key={category.id}
-                label={category.name}
-                value={category.id}
-                color={Colors.textPrimary}
-              />
-            ))}
-          </Picker>
-        </View>
+        <TouchableOpacity
+          style={styles.pickerButton}
+          onPress={() => setPickerOpen(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.pickerValue}>{selectedName}</Text>
+          <Text style={styles.pickerChevron}>▾</Text>
+        </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={pickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickerOpen(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setPickerOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={() => undefined}>
+            <Text style={styles.modalTitle}>Category</Text>
+            {categories.map((category) => {
+              const isSelected = selectedCategory === category.id;
+              return (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[styles.modalOption, isSelected && styles.modalOptionSelected]}
+                  onPress={() => {
+                    setSelectedCategory(category.id);
+                    setPickerOpen(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      isSelected && styles.modalOptionTextSelected,
+                    ]}
+                  >
+                    {category.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Description (optional)</Text>
@@ -117,16 +157,60 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: Spacing.xs,
   },
-  pickerWrapper: {
+  pickerButton: {
     backgroundColor: Colors.background,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
-    overflow: 'hidden',
+    paddingHorizontal: Spacing.md,
+    minHeight: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  picker: {
+  pickerValue: {
     color: Colors.textPrimary,
-    height: 50,
+    fontSize: FontSizes.md,
+    flex: 1,
+  },
+  pickerChevron: {
+    color: Colors.textSecondary,
+    fontSize: FontSizes.lg,
+    marginLeft: Spacing.sm,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  modalCard: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+  },
+  modalTitle: {
+    fontSize: FontSizes.md,
+    fontWeight: 'bold',
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+  },
+  modalOption: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
+  modalOptionSelected: {
+    backgroundColor: Colors.background,
+  },
+  modalOptionText: {
+    color: Colors.textPrimary,
+    fontSize: FontSizes.md,
+  },
+  modalOptionTextSelected: {
+    color: Colors.primaryGreen,
+    fontWeight: '600',
   },
   inputGroup: {
     marginBottom: Spacing.md,

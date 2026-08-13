@@ -1,13 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ScrollView, StyleSheet, RefreshControl, Alert } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { StyleSheet, RefreshControl, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Colors, Spacing } from '../constants/theme';
+import { ScreenScroll } from '../components/ScreenScroll';
 import { BudgetSummary } from '../components/BudgetSummary';
 import { CategoryList } from '../components/CategoryList';
 import { SpendingForm } from '../components/SpendingForm';
 import { SpendingList } from '../components/SpendingList';
+import { initDatabase } from '../services/database';
 import { getCurrentBudget, Budget } from '../services/budgetService';
-import { getCategories, Category } from '../services/categoryService';
+import {
+  getCategories,
+  createCategory,
+  deleteCategory,
+  Category,
+  CategoryInput,
+} from '../services/categoryService';
 import { getSpendings, createSpending, deleteSpending, Spending } from '../services/spendingService';
 import {
   calculateTotalSpent,
@@ -25,6 +33,7 @@ export default function HomeScreen() {
 
   const loadData = async () => {
     try {
+      await initDatabase();
       const currentBudget = await getCurrentBudget();
       
       if (!currentBudget) {
@@ -65,10 +74,34 @@ export default function HomeScreen() {
     try {
       await createSpending(categoryId, amount, description);
       await loadData();
-      Alert.alert('Success', 'Spending added successfully');
+      
     } catch (error) {
       console.error('Error adding spending:', error);
       Alert.alert('Error', 'Failed to add spending');
+    }
+  };
+
+  const handleAddCategory = async (input: CategoryInput) => {
+    if (!budget) {
+      return;
+    }
+
+    try {
+      await createCategory(budget.id, budget.total_amount, input);
+      await loadData();
+    } catch (error) {
+      console.error('Error adding category:', error);
+      Alert.alert('Error', 'Failed to add category');
+    }
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    try {
+      await deleteCategory(id);
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      Alert.alert('Error', 'Failed to delete category');
     }
   };
 
@@ -91,7 +124,7 @@ export default function HomeScreen() {
   const remaining = calculateRemainingBudget(budget.total_amount, totalSpent);
 
   return (
-    <ScrollView
+    <ScreenScroll
       style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={
@@ -109,7 +142,13 @@ export default function HomeScreen() {
         remaining={remaining}
       />
 
-      <CategoryList categories={categories} spendings={spendings} />
+      <CategoryList
+        categories={categories}
+        spendings={spendings}
+        budgetTotal={budget.total_amount}
+        onAddCategory={handleAddCategory}
+        onDeleteCategory={handleDeleteCategory}
+      />
 
       <SpendingForm categories={categories} onAddSpending={handleAddSpending} />
 
@@ -118,7 +157,7 @@ export default function HomeScreen() {
         categories={categories}
         onDeleteSpending={handleDeleteSpending}
       />
-    </ScrollView>
+    </ScreenScroll>
   );
 }
 

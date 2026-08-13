@@ -1,8 +1,16 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Drawer } from 'expo-router/drawer';
-import { Alert, TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import { Alert, ActivityIndicator, Platform, View, StyleSheet } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useRouter, usePathname } from 'expo-router';
-import { Colors, FontSizes, Spacing } from '../constants/theme';
+import {
+  DrawerContentScrollView,
+  DrawerItem,
+  DrawerItemList,
+  type DrawerContentComponentProps,
+} from '@react-navigation/drawer';
+import { Colors, FontSizes } from '../constants/theme';
+import { WebPreviewNav } from '../components/WebPreviewNav';
 import { initDatabase } from '../services/database';
 import { deleteBudget } from '../services/budgetService';
 import { deleteAllCategories } from '../services/categoryService';
@@ -11,12 +19,15 @@ import { deleteAllSpendings } from '../services/spendingService';
 export default function Layout() {
   const router = useRouter();
   const pathname = usePathname();
+  const [dbReady, setDbReady] = useState(false);
 
   useEffect(() => {
-    initDatabase().catch((error) => {
-      console.error('Failed to initialize database:', error);
-      Alert.alert('Error', 'Failed to initialize the app. Please restart.');
-    });
+    initDatabase()
+      .then(() => setDbReady(true))
+      .catch((error) => {
+        console.error('Failed to initialize database:', error);
+        Alert.alert('Error', 'Failed to initialize the app. Please restart.');
+      });
   }, []);
 
   const handleSetup = () => {
@@ -69,8 +80,45 @@ export default function Layout() {
 
   const isSetupRoute = pathname.startsWith('/setup');
 
-  return (
+  const renderDrawerContent = (props: DrawerContentComponentProps) => (
+    <DrawerContentScrollView {...props}>
+      <DrawerItemList {...props} />
+      {!isSetupRoute && (
+        <>
+          <DrawerItem
+            label="Setup"
+            onPress={() => {
+              props.navigation.closeDrawer();
+              handleSetup();
+            }}
+            inactiveTintColor={Colors.textSecondary}
+            labelStyle={styles.drawerLabel}
+          />
+          <DrawerItem
+            label="New Period"
+            onPress={() => {
+              props.navigation.closeDrawer();
+              handleNewPeriod();
+            }}
+            inactiveTintColor={Colors.textSecondary}
+            labelStyle={styles.drawerLabel}
+          />
+        </>
+      )}
+    </DrawerContentScrollView>
+  );
+
+  if (!dbReady) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color={Colors.primaryGreen} />
+      </View>
+    );
+  }
+
+  const app = (
     <Drawer
+      drawerContent={renderDrawerContent}
       screenOptions={{
         headerStyle: {
           backgroundColor: Colors.cardBackground,
@@ -85,9 +133,7 @@ export default function Layout() {
         },
         drawerActiveTintColor: Colors.primaryGreen,
         drawerInactiveTintColor: Colors.textSecondary,
-        drawerLabelStyle: {
-          fontSize: FontSizes.md,
-        },
+        drawerLabelStyle: styles.drawerLabel,
         swipeEnabled: !isSetupRoute,
       }}
     >
@@ -120,33 +166,41 @@ export default function Layout() {
         }}
       />
       <Drawer.Screen
-        name="action-setup"
+        name="+not-found"
         options={{
-          drawerLabel: 'Setup',
-          title: 'Setup',
-          drawerItemStyle: { display: isSetupRoute ? 'none' : 'flex' },
-        }}
-        listeners={{
-          drawerItemPress: (e) => {
-            e.preventDefault();
-            handleSetup();
-          },
-        }}
-      />
-      <Drawer.Screen
-        name="action-new-period"
-        options={{
-          drawerLabel: 'New Period',
-          title: 'New Period',
-          drawerItemStyle: { display: isSetupRoute ? 'none' : 'flex' },
-        }}
-        listeners={{
-          drawerItemPress: (e) => {
-            e.preventDefault();
-            handleNewPeriod();
-          },
+          drawerItemStyle: { display: 'none' },
         }}
       />
     </Drawer>
   );
+
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.webShell}>
+        <WebPreviewNav />
+        <View style={styles.webApp}>{app}</View>
+      </View>
+    );
+  }
+
+  return <KeyboardProvider>{app}</KeyboardProvider>;
 }
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerLabel: {
+    fontSize: FontSizes.md,
+  },
+  webShell: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  webApp: {
+    flex: 1,
+  },
+});

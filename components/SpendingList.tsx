@@ -1,8 +1,20 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 import { Spending } from '../services/spendingService';
 import { Category } from '../services/categoryService';
+
+const TrashIcon = () => (
+  <View style={styles.trash}>
+    <View style={styles.trashLid} />
+    <View style={styles.trashBody}>
+      <View style={styles.trashLine} />
+      <View style={styles.trashLine} />
+      <View style={styles.trashLine} />
+    </View>
+  </View>
+);
 
 interface SpendingListProps {
   spendings: Spending[];
@@ -20,36 +32,42 @@ export const SpendingList: React.FC<SpendingListProps> = ({
     return category ? category.name : 'Unknown';
   };
 
-  const handleDelete = (id: number) => {
-    Alert.alert(
-      'Delete Spending',
-      'Are you sure you want to delete this spending?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => onDeleteSpending(id) },
-      ]
-    );
-  };
+  const renderRightActions = (id: number) => (
+    <TouchableOpacity
+      style={styles.deleteAction}
+      onPress={() => onDeleteSpending(id)}
+      accessibilityRole="button"
+      accessibilityLabel="Delete spending"
+    >
+      <TrashIcon />
+    </TouchableOpacity>
+  );
 
   const renderItem = ({ item }: { item: Spending }) => (
-    <TouchableOpacity
-      style={styles.item}
-      onLongPress={() => handleDelete(item.id)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.itemContent}>
-        <View style={styles.itemHeader}>
-          <Text style={styles.categoryName}>{getCategoryName(item.category_id)}</Text>
-          <Text style={styles.amount}>${item.amount.toFixed(2)}</Text>
+    <View style={styles.itemWrap}>
+      <Swipeable
+        overshootRight={false}
+        rightThreshold={40}
+        activeOffsetX={[-20, 20]}
+        failOffsetY={[-12, 12]}
+        renderRightActions={() => renderRightActions(item.id)}
+      >
+        <View style={styles.item}>
+          <View style={styles.itemContent}>
+            <View style={styles.itemHeader}>
+              <Text style={styles.categoryName}>{getCategoryName(item.category_id)}</Text>
+              <Text style={styles.amount}>${item.amount.toFixed(2)}</Text>
+            </View>
+            {item.description && (
+              <Text style={styles.description}>{item.description}</Text>
+            )}
+            <Text style={styles.date}>
+              {new Date(item.created_at).toLocaleDateString()}
+            </Text>
+          </View>
         </View>
-        {item.description && (
-          <Text style={styles.description}>{item.description}</Text>
-        )}
-        <Text style={styles.date}>
-          {new Date(item.created_at).toLocaleDateString()}
-        </Text>
-      </View>
-    </TouchableOpacity>
+      </Swipeable>
+    </View>
   );
 
   if (spendings.length === 0) {
@@ -69,7 +87,6 @@ export const SpendingList: React.FC<SpendingListProps> = ({
         keyExtractor={(item) => item.id.toString()}
         scrollEnabled={false}
       />
-      <Text style={styles.hint}>Long press to delete</Text>
     </View>
   );
 };
@@ -84,11 +101,14 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
   },
+  itemWrap: {
+    marginBottom: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+  },
   item: {
     backgroundColor: Colors.cardBackground,
-    borderRadius: BorderRadius.md,
     padding: Spacing.md,
-    marginBottom: Spacing.sm,
   },
   itemContent: {
     flex: 1,
@@ -117,6 +137,37 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
   },
+  deleteAction: {
+    backgroundColor: Colors.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 72,
+  },
+  trash: {
+    alignItems: 'center',
+  },
+  trashLid: {
+    width: 20,
+    height: 3,
+    borderRadius: 1,
+    backgroundColor: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  trashBody: {
+    width: 16,
+    height: 18,
+    borderWidth: 2,
+    borderColor: Colors.textPrimary,
+    borderRadius: 2,
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    paddingTop: 3,
+  },
+  trashLine: {
+    width: 2,
+    height: 10,
+    backgroundColor: Colors.textPrimary,
+  },
   emptyContainer: {
     padding: Spacing.xl,
     alignItems: 'center',
@@ -124,11 +175,5 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FontSizes.md,
     color: Colors.textSecondary,
-  },
-  hint: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginTop: Spacing.sm,
   },
 });

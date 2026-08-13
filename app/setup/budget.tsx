@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../../constants/theme';
+import { ScreenScroll } from '../../components/ScreenScroll';
 
 export default function BudgetScreen() {
   const router = useRouter();
@@ -21,11 +22,8 @@ export default function BudgetScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.content}>
+    <ScreenScroll style={styles.container} contentContainerStyle={styles.content}>
+      <View>
         <Text style={styles.title}>What's this month's budget?</Text>
         <Text style={styles.subtitle}>Enter the total amount you want to budget</Text>
 
@@ -50,7 +48,7 @@ export default function BudgetScreen() {
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </ScreenScroll>
   );
 }
 
@@ -60,7 +58,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     padding: Spacing.xl,
     justifyContent: 'center',
   },

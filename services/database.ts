@@ -1,22 +1,31 @@
 import * as SQLite from 'expo-sqlite';
 
 let db: SQLite.SQLiteDatabase | null = null;
+let initPromise: Promise<void> | null = null;
 
 export const initDatabase = async (): Promise<void> => {
-  try {
-    db = await SQLite.openDatabaseAsync('budgetr.db');
-    
-    await db.execAsync('PRAGMA foreign_keys = ON;');
-    
-    await db.execAsync(`
+  if (db) {
+    return;
+  }
+
+  if (initPromise) {
+    return initPromise;
+  }
+
+  initPromise = (async () => {
+    const database = await SQLite.openDatabaseAsync('budgetr.db');
+
+    await database.execAsync('PRAGMA foreign_keys = ON;');
+
+    await database.execAsync(`
       CREATE TABLE IF NOT EXISTS budget (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         total_amount REAL NOT NULL,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    
-    await db.execAsync(`
+
+    await database.execAsync(`
       CREATE TABLE IF NOT EXISTS categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         budget_id INTEGER NOT NULL,
@@ -27,8 +36,8 @@ export const initDatabase = async (): Promise<void> => {
         FOREIGN KEY (budget_id) REFERENCES budget(id) ON DELETE CASCADE
       );
     `);
-    
-    await db.execAsync(`
+
+    await database.execAsync(`
       CREATE TABLE IF NOT EXISTS spendings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         category_id INTEGER NOT NULL,
@@ -38,9 +47,15 @@ export const initDatabase = async (): Promise<void> => {
         FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
       );
     `);
-    
+
+    db = database;
     console.log('Database initialized successfully');
+  })();
+
+  try {
+    await initPromise;
   } catch (error) {
+    initPromise = null;
     console.error('Error initializing database:', error);
     throw error;
   }
@@ -57,5 +72,6 @@ export const closeDatabase = async (): Promise<void> => {
   if (db) {
     await db.closeAsync();
     db = null;
+    initPromise = null;
   }
 };

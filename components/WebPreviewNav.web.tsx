@@ -1,0 +1,108 @@
+import React from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { usePathname, useRouter } from 'expo-router';
+import { Colors, FontSizes, Spacing } from '../constants/theme';
+import {
+  clearPreviewBudget,
+  loadSamplePreviewData,
+} from '../services/webPreviewStore';
+
+const pages = [
+  { key: 'setup-budget', label: 'Setup Budget', path: '/setup/budget' },
+  { key: 'setup-categories', label: 'Setup Categories', path: '/setup/categories' },
+  { key: 'home', label: 'Home', path: '/' },
+  { key: 'not-found', label: '404', path: '/missing-page' },
+] as const;
+
+export const WebPreviewNav = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const goTo = (key: (typeof pages)[number]['key']) => {
+    if (key === 'home') {
+      loadSamplePreviewData();
+      router.replace('/');
+      return;
+    }
+
+    if (key === 'setup-budget') {
+      clearPreviewBudget();
+      router.replace('/setup/budget');
+      return;
+    }
+
+    if (key === 'setup-categories') {
+      clearPreviewBudget();
+      router.replace({
+        pathname: '/setup/categories',
+        params: { budgetAmount: '2000' },
+      });
+      return;
+    }
+
+    router.replace('/missing-page');
+  };
+
+  return (
+    <View style={styles.bar}>
+      <Text style={styles.title}>Design preview</Text>
+      {pages.map((page) => {
+        const active =
+          (page.key === 'home' && pathname === '/') ||
+          (page.key === 'setup-budget' && pathname === '/setup/budget') ||
+          (page.key === 'setup-categories' && pathname === '/setup/categories') ||
+          (page.key === 'not-found' && pathname === '/missing-page');
+
+        return (
+          <Pressable
+            key={page.key}
+            style={[styles.button, active && styles.buttonActive]}
+            onPress={() => goTo(page.key)}
+          >
+            <Text style={[styles.buttonText, active && styles.buttonTextActive]}>
+              {page.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  title: {
+    color: Colors.textSecondary,
+    fontSize: FontSizes.sm,
+    marginRight: Spacing.sm,
+  },
+  button: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  buttonActive: {
+    backgroundColor: Colors.primaryGreen,
+    borderColor: Colors.primaryGreen,
+  },
+  buttonText: {
+    color: Colors.textSecondary,
+    fontSize: FontSizes.sm,
+  },
+  buttonTextActive: {
+    color: Colors.textPrimary,
+    fontWeight: '600',
+  },
+});
