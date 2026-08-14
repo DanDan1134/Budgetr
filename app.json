@@ -12,7 +12,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.budgetr.app",
+      "bundleIdentifier": "com.dandan.budgetr",
       "buildNumber": "1"
     },
     "android": {
