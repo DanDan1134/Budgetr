@@ -1,13 +1,13 @@
 {
   "expo": {
     "name": "Budgetr",
-    "slug": "Budgetr",
+    "slug": "budgetr",
     "version": "1.2.0",
     "owner": "daniel18700",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "scheme": "Budgetr",
+    "scheme": "budgetr",
     "plugins": [
       "expo-router"
     ],
