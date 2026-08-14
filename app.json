@@ -3,6 +3,7 @@
     "name": "Budgetr Budgeting app",
     "slug": "budgetr",
     "version": "1.0.0",
+    "owner": "daniel18700",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -28,6 +29,11 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a1390991-4934-4fdc-b4ab-158585f4aabf"
+      }
     }
   }
 }
