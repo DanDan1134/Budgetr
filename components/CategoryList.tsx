@@ -103,7 +103,12 @@ export const CategoryList: React.FC<CategoryListProps> = ({
       {categories.map((category) => {
         const spent = calculateCategorySpent(category.id, spendings);
         const remaining = calculateCategoryRemaining(category.allocated_amount, spent);
-        const percentage = (spent / category.allocated_amount) * 100;
+        const percentage =
+          category.allocated_amount > 0
+            ? (spent / category.allocated_amount) * 100
+            : spent > 0
+              ? 100
+              : 0;
 
         return (
           <View key={category.id} style={styles.itemWrap}>
