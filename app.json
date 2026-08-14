@@ -1,8 +1,9 @@
 {
   "expo": {
-    "name": "budgetr",
+    "name": "Budgetr Budgeting app",
     "slug": "budgetr",
-    "version": "1.0.0",
+    "version": "1.2.0",
+    "owner": "daniel18700",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -11,7 +12,9 @@
       "expo-router"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dandan.budgetr",
+      "buildNumber": "1"
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
@@ -26,6 +29,11 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a1390991-4934-4fdc-b4ab-158585f4aabf"
+      }
     }
   }
 }

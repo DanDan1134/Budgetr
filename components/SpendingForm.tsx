@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,16 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
   const [pickerOpen, setPickerOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+
+  useEffect(() => {
+    if (categories.length === 0) {
+      setSelectedCategory(null);
+      return;
+    }
+    if (!categories.some((category) => category.id === selectedCategory)) {
+      setSelectedCategory(categories[0].id);
+    }
+  }, [categories, selectedCategory]);
 
   const selectedName =
     categories.find((category) => category.id === selectedCategory)?.name ?? 'Select a category';

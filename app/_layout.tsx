@@ -14,7 +14,6 @@ import { WebPreviewNav } from '../components/WebPreviewNav';
 import { initDatabase } from '../services/database';
 import { deleteBudget } from '../services/budgetService';
 import { deleteAllCategories } from '../services/categoryService';
-import { deleteAllSpendings } from '../services/spendingService';
 import { closeCurrentPeriod } from '../services/historyService';
 
 export default function Layout() {
@@ -45,7 +44,6 @@ export default function Layout() {
               await closeCurrentPeriod();
               await deleteBudget();
               await deleteAllCategories();
-              await deleteAllSpendings();
               router.replace('/setup/budget');
             } catch (error) {
               console.error('Error resetting budget:', error);
@@ -68,7 +66,6 @@ export default function Layout() {
           onPress: async () => {
             try {
               await closeCurrentPeriod();
-              await deleteAllSpendings();
               router.replace({
                 pathname: '/',
                 params: { period: Date.now().toString() },
