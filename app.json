@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "budgetr",
+    "name": "Budgetr Budgeting app",
     "slug": "budgetr",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,7 +11,9 @@
       "expo-router"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dandan.budgetr",
+      "buildNumber": "1"
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
