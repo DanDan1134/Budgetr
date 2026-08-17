@@ -4,11 +4,11 @@ A minimal and simple budgeting app built with React Native and Expo.
 
 ## Features
 
-- Set monthly budget
-- Create categories with percentage or dollar allocations
-- Track spending by category
-- View budget overview and remaining balance
-- Start new budgeting periods
+- Set monthly budget and optional income
+- Create and edit categories with percentage or dollar allocations
+- Track spending with filters, search, and day groups
+- Recurring bills, save goals, and period history with CSV export
+- Optional device lock and a 1st-of-month reminder
 - Dark theme with green accents
 - Local SQLite storage (no login required)
 

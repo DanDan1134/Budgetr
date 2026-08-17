@@ -45,6 +45,16 @@ export const deleteCategory = async (id: number): Promise<void> => {
   removePreviewCategory(id);
 };
 
+export const updateCategory = async (
+  id: number,
+  budgetTotal: number,
+  input: CategoryInput
+): Promise<void> => {
+  const current = previewCategories.find((category) => category.id === id);
+  removePreviewCategory(id);
+  addPreviewCategory(current?.budget_id ?? 1, budgetTotal, input);
+};
+
 export const deleteAllCategories = async (): Promise<void> => {
   clearPreviewCategories();
 };

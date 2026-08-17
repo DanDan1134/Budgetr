@@ -1,9 +1,10 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Alert, Platform } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 import { ScreenScroll } from '../components/ScreenScroll';
 import {
+  exportHistoryCsv,
   getHistoryPeriodDetail,
   getHistoryPeriods,
   type HistoryPeriod,
@@ -87,6 +88,36 @@ export default function HistoryScreen() {
   }, [selectedPeriod, categoryFilter, dateFilter]);
 
   const filteredTotal = filteredSpendings.reduce((sum, spending) => sum + spending.amount, 0);
+
+  const shareCsv = async () => {
+    try {
+      const csv = await exportHistoryCsv();
+      if (Platform.OS === 'web') {
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'budgetr-history.csv';
+        link.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+      const FileSystem = await import('expo-file-system/legacy');
+      const Sharing = await import('expo-sharing');
+      const path = `${FileSystem.cacheDirectory}budgetr-history.csv`;
+      await FileSystem.writeAsStringAsync(path, csv);
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(path, { mimeType: 'text/csv', UTI: 'public.comma-separated-values-text' });
+      } else {
+        Alert.alert('Export ready', csv.slice(0, 200));
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Could not export history');
+    }
+  };
+
+  const chartMax = Math.max(...periods.map((period) => period.total_spent), 1);
   const topCategory = selectedPeriod?.categories[0];
   const overspent = selectedPeriod
     ? Math.max(0, selectedPeriod.total_spent - selectedPeriod.total_budget)
@@ -191,6 +222,30 @@ export default function HistoryScreen() {
     >
       <Text style={styles.title}>History</Text>
       <Text style={styles.subtitle}>Closed budgeting periods</Text>
+      {periods.length > 0 && (
+        <>
+          <TouchableOpacity style={styles.exportButton} onPress={shareCsv}>
+            <Text style={styles.exportText}>Export CSV</Text>
+          </TouchableOpacity>
+          <View style={styles.chartCard}>
+            <Text style={styles.sectionTitle}>Spent by period</Text>
+            {[...periods].reverse().map((period) => (
+              <View key={period.id} style={styles.chartRow}>
+                <Text style={styles.chartLabel}>{formatDate(period.closed_at)}</Text>
+                <View style={styles.chartTrack}>
+                  <View
+                    style={[
+                      styles.chartFill,
+                      { width: `${Math.max(6, (period.total_spent / chartMax) * 100)}%` },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.chartValue}>{formatMoney(period.total_spent)}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
 
       {periods.length === 0 ? (
         <View style={styles.emptyCard}>
@@ -443,5 +498,47 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     textAlign: 'center',
     marginTop: Spacing.sm,
+  },
+  exportButton: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: Colors.primaryGreen,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  exportText: {
+    color: Colors.primaryGreen,
+    fontWeight: '600',
+  },
+  chartCard: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  chartRow: {
+    marginBottom: Spacing.sm,
+  },
+  chartLabel: {
+    color: Colors.textSecondary,
+    fontSize: FontSizes.sm,
+    marginBottom: Spacing.xs,
+  },
+  chartTrack: {
+    height: 10,
+    backgroundColor: Colors.border,
+    borderRadius: 999,
+    overflow: 'hidden',
+    marginBottom: Spacing.xs,
+  },
+  chartFill: {
+    height: '100%',
+    backgroundColor: Colors.primaryGreen,
+  },
+  chartValue: {
+    color: Colors.textPrimary,
+    fontSize: FontSizes.sm,
   },
 });

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Drawer } from 'expo-router/drawer';
-import { Alert, ActivityIndicator, Platform, View, StyleSheet } from 'react-native';
+import { Alert, ActivityIndicator, Platform, View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useRouter, usePathname } from 'expo-router';
 import {
@@ -15,15 +15,27 @@ import { initDatabase } from '../services/database';
 import { deleteBudget } from '../services/budgetService';
 import { deleteAllCategories } from '../services/categoryService';
 import { closeCurrentPeriod } from '../services/historyService';
+import { applyRecurringSpendings } from '../services/recurringService';
+import { authenticateUnlock, shouldLockApp } from '../services/lockService';
 
 export default function Layout() {
   const router = useRouter();
   const pathname = usePathname();
   const [dbReady, setDbReady] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
 
   useEffect(() => {
     initDatabase()
-      .then(() => setDbReady(true))
+      .then(async () => {
+        const needsLock = await shouldLockApp();
+        if (!needsLock) {
+          setUnlocked(true);
+        } else {
+          const ok = await authenticateUnlock();
+          setUnlocked(ok);
+        }
+        setDbReady(true);
+      })
       .catch((error) => {
         console.error('Failed to initialize database:', error);
         Alert.alert('Error', 'Failed to initialize the app. Please restart.');
@@ -66,11 +78,17 @@ export default function Layout() {
           onPress: async () => {
             try {
               await closeCurrentPeriod();
+              const applied = await applyRecurringSpendings();
               router.replace({
                 pathname: '/',
                 params: { period: Date.now().toString() },
               });
-              Alert.alert('Success', 'Period saved to History. Spendings were reset.');
+              Alert.alert(
+                'Success',
+                applied > 0
+                  ? `Period saved. ${applied} recurring bill${applied === 1 ? '' : 's'} added.`
+                  : 'Period saved to History. Spendings were reset.'
+              );
             } catch (error) {
               console.error('Error starting new period:', error);
               Alert.alert('Error', 'Failed to start new period');
@@ -119,6 +137,39 @@ export default function Layout() {
         inactiveTintColor={Colors.textSecondary}
         labelStyle={styles.drawerLabel}
       />
+      <DrawerItem
+        label="Recurring"
+        focused={pathname === '/recurring'}
+        onPress={() => {
+          props.navigation.closeDrawer();
+          router.push('/recurring');
+        }}
+        activeTintColor={Colors.primaryGreen}
+        inactiveTintColor={Colors.textSecondary}
+        labelStyle={styles.drawerLabel}
+      />
+      <DrawerItem
+        label="Goals"
+        focused={pathname === '/goals'}
+        onPress={() => {
+          props.navigation.closeDrawer();
+          router.push('/goals');
+        }}
+        activeTintColor={Colors.primaryGreen}
+        inactiveTintColor={Colors.textSecondary}
+        labelStyle={styles.drawerLabel}
+      />
+      <DrawerItem
+        label="Settings"
+        focused={pathname === '/settings'}
+        onPress={() => {
+          props.navigation.closeDrawer();
+          router.push('/settings');
+        }}
+        activeTintColor={Colors.primaryGreen}
+        inactiveTintColor={Colors.textSecondary}
+        labelStyle={styles.drawerLabel}
+      />
     </DrawerContentScrollView>
   );
 
@@ -126,6 +177,23 @@ export default function Layout() {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={Colors.primaryGreen} />
+      </View>
+    );
+  }
+
+  if (!unlocked) {
+    return (
+      <View style={styles.loading}>
+        <Text style={styles.lockText}>Budgetr is locked</Text>
+        <TouchableOpacity
+          style={styles.unlockButton}
+          onPress={async () => {
+            const ok = await authenticateUnlock();
+            setUnlocked(ok);
+          }}
+        >
+          <Text style={styles.unlockText}>Unlock</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -164,6 +232,33 @@ export default function Layout() {
         options={{
           drawerLabel: () => null,
           title: 'History',
+          drawerItemStyle: { display: 'none' },
+          headerShown: true,
+        }}
+      />
+      <Drawer.Screen
+        name="recurring"
+        options={{
+          drawerLabel: () => null,
+          title: 'Recurring',
+          drawerItemStyle: { display: 'none' },
+          headerShown: true,
+        }}
+      />
+      <Drawer.Screen
+        name="goals"
+        options={{
+          drawerLabel: () => null,
+          title: 'Goals',
+          drawerItemStyle: { display: 'none' },
+          headerShown: true,
+        }}
+      />
+      <Drawer.Screen
+        name="settings"
+        options={{
+          drawerLabel: () => null,
+          title: 'Settings',
           drawerItemStyle: { display: 'none' },
           headerShown: true,
         }}
@@ -215,6 +310,21 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 16,
+  },
+  lockText: {
+    color: Colors.textPrimary,
+    fontSize: FontSizes.lg,
+  },
+  unlockButton: {
+    backgroundColor: Colors.primaryGreen,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  unlockText: {
+    color: Colors.textPrimary,
+    fontWeight: 'bold',
   },
   drawerLabel: {
     fontSize: FontSizes.md,

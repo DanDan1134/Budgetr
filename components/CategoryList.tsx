@@ -36,6 +36,7 @@ interface CategoryListProps {
   spendings: Spending[];
   budgetTotal: number;
   onAddCategory: (input: CategoryInput) => Promise<void> | void;
+  onUpdateCategory: (id: number, input: CategoryInput) => Promise<void> | void;
   onDeleteCategory: (id: number) => void;
 }
 
@@ -44,9 +45,11 @@ export const CategoryList: React.FC<CategoryListProps> = ({
   spendings,
   budgetTotal,
   onAddCategory,
+  onUpdateCategory,
   onDeleteCategory,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [name, setName] = useState('');
   const [allocationType, setAllocationType] = useState<'percentage' | 'dollar'>('percentage');
   const [allocationValue, setAllocationValue] = useState('');
@@ -55,6 +58,15 @@ export const CategoryList: React.FC<CategoryListProps> = ({
     setName('');
     setAllocationType('percentage');
     setAllocationValue('');
+    setEditingId(null);
+  };
+
+  const openEdit = (category: Category) => {
+    setEditingId(category.id);
+    setName(category.name);
+    setAllocationType(category.allocation_type);
+    setAllocationValue(String(category.allocation_value));
+    setModalOpen(true);
   };
 
   const closeModal = () => {
@@ -73,11 +85,19 @@ export const CategoryList: React.FC<CategoryListProps> = ({
       return;
     }
 
-    await onAddCategory({
-      name: name.trim(),
-      allocation_type: allocationType,
-      allocation_value: parsedValue,
-    });
+    if (editingId) {
+      await onUpdateCategory(editingId, {
+        name: name.trim(),
+        allocation_type: allocationType,
+        allocation_value: parsedValue,
+      });
+    } else {
+      await onAddCategory({
+        name: name.trim(),
+        allocation_type: allocationType,
+        allocation_value: parsedValue,
+      });
+    }
     closeModal();
   };
 
@@ -128,10 +148,14 @@ export const CategoryList: React.FC<CategoryListProps> = ({
                 </TouchableOpacity>
               )}
             >
-              <View style={styles.categoryCard}>
+              <TouchableOpacity
+                style={[styles.categoryCard, remaining < 0 && styles.categoryOver]}
+                onPress={() => openEdit(category)}
+                activeOpacity={0.8}
+              >
                 <View style={styles.categoryHeader}>
                   <Text style={styles.categoryName}>{category.name}</Text>
-                  <Text style={styles.categoryAmount}>
+                  <Text style={[styles.categoryAmount, remaining < 0 && { color: Colors.error }]}>
                     ${spent.toFixed(2)} / ${category.allocated_amount.toFixed(2)}
                   </Text>
                 </View>
@@ -143,7 +167,9 @@ export const CategoryList: React.FC<CategoryListProps> = ({
                       {
                         width: `${Math.min(percentage, 100)}%`,
                         backgroundColor:
-                          percentage < 75
+                          remaining < 0
+                            ? Colors.error
+                            : percentage < 75
                             ? Colors.primaryGreen
                             : percentage < 90
                             ? Colors.warning
@@ -153,10 +179,12 @@ export const CategoryList: React.FC<CategoryListProps> = ({
                   />
                 </View>
 
-                <Text style={styles.remainingText}>
-                  Remaining: ${remaining.toFixed(2)}
+                <Text style={[styles.remainingText, remaining < 0 && { color: Colors.error }]}>
+                  {remaining < 0
+                    ? `Over by $${Math.abs(remaining).toFixed(2)}`
+                    : `Remaining: $${remaining.toFixed(2)}`}
                 </Text>
-              </View>
+              </TouchableOpacity>
             </Swipeable>
           </View>
         );
@@ -165,7 +193,7 @@ export const CategoryList: React.FC<CategoryListProps> = ({
       <Modal visible={modalOpen} transparent animationType="fade" onRequestClose={closeModal}>
         <Pressable style={styles.modalOverlay} onPress={closeModal}>
           <Pressable style={styles.modalCard} onPress={() => undefined}>
-            <Text style={styles.modalTitle}>Add category</Text>
+            <Text style={styles.modalTitle}>{editingId ? 'Edit category' : 'Add category'}</Text>
 
             <TextInput
               style={styles.input}
@@ -206,7 +234,7 @@ export const CategoryList: React.FC<CategoryListProps> = ({
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleSave}>
-                <Text style={styles.saveText}>Add</Text>
+                <Text style={styles.saveText}>{editingId ? 'Save' : 'Add'}</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -245,6 +273,10 @@ const styles = StyleSheet.create({
   categoryCard: {
     backgroundColor: Colors.cardBackground,
     padding: Spacing.md,
+  },
+  categoryOver: {
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.error,
   },
   deleteAction: {
     backgroundColor: Colors.error,
