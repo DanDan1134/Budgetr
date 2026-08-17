@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 import { Spending } from '../services/spendingService';
@@ -27,6 +27,24 @@ export const SpendingList: React.FC<SpendingListProps> = ({
   categories,
   onDeleteSpending,
 }) => {
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'all'>('all');
+
+  useEffect(() => {
+    if (selectedCategoryId === 'all') {
+      return;
+    }
+    if (!categories.some((category) => category.id === selectedCategoryId)) {
+      setSelectedCategoryId('all');
+    }
+  }, [categories, selectedCategoryId]);
+
+  const filteredSpendings = useMemo(() => {
+    if (selectedCategoryId === 'all') {
+      return spendings;
+    }
+    return spendings.filter((spending) => spending.category_id === selectedCategoryId);
+  }, [spendings, selectedCategoryId]);
+
   const getCategoryName = (categoryId: number): string => {
     const category = categories.find((c) => c.id === categoryId);
     return category ? category.name : 'Unknown';
@@ -70,23 +88,61 @@ export const SpendingList: React.FC<SpendingListProps> = ({
     </View>
   );
 
-  if (spendings.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No spendings yet</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Recent Spendings</Text>
-      <FlatList
-        data={spendings}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
-        scrollEnabled={false}
-      />
+      {categories.length > 0 && (
+        <ScrollView
+          horizontal
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+          style={styles.chipScroll}
+        >
+          <TouchableOpacity
+            style={[styles.chip, selectedCategoryId === 'all' && styles.chipActive]}
+            onPress={() => setSelectedCategoryId('all')}
+            accessibilityRole="button"
+            accessibilityState={{ selected: selectedCategoryId === 'all' }}
+            accessibilityLabel="All categories"
+          >
+            <Text style={[styles.chipText, selectedCategoryId === 'all' && styles.chipTextActive]}>
+              All
+            </Text>
+          </TouchableOpacity>
+          {categories.map((category) => {
+            const active = selectedCategoryId === category.id;
+            return (
+              <TouchableOpacity
+                key={category.id}
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() => setSelectedCategoryId(category.id)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={category.name}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                  {category.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
+      {filteredSpendings.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            {spendings.length === 0 ? 'No spendings yet' : 'No spendings in this category'}
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredSpendings}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
+          scrollEnabled={false}
+        />
+      )}
     </View>
   );
 };
@@ -99,7 +155,33 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     fontWeight: 'bold',
     color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  chipScroll: {
     marginBottom: Spacing.md,
+  },
+  chipRow: {
+    gap: Spacing.sm,
+    paddingRight: Spacing.sm,
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 999,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  chipActive: {
+    backgroundColor: Colors.primaryGreen,
+    borderColor: Colors.primaryGreen,
+  },
+  chipText: {
+    color: Colors.textSecondary,
+    fontSize: FontSizes.sm,
+  },
+  chipTextActive: {
+    color: Colors.textPrimary,
+    fontWeight: '600',
   },
   itemWrap: {
     marginBottom: Spacing.sm,
