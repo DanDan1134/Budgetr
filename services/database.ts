@@ -92,6 +92,30 @@ export const initDatabase = async (): Promise<void> => {
       );
     `);
 
+    await database.execAsync(`
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `);
+
+    await database.execAsync(`
+      CREATE TABLE IF NOT EXISTS recurring (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category_name TEXT NOT NULL,
+        amount REAL NOT NULL,
+        description TEXT
+      );
+    `);
+
+    await database.execAsync(`
+      CREATE TABLE IF NOT EXISTS goals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        target_amount REAL NOT NULL
+      );
+    `);
+
     const currentPeriod = await database.getFirstAsync<{ started_at: string }>(
       'SELECT started_at FROM current_period WHERE id = 1'
     );

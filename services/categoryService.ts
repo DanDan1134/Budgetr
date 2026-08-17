@@ -62,6 +62,25 @@ export const deleteCategory = async (id: number): Promise<void> => {
   await db.runAsync('DELETE FROM categories WHERE id = ?', [id]);
 };
 
+export const updateCategory = async (
+  id: number,
+  budgetTotal: number,
+  input: CategoryInput
+): Promise<void> => {
+  const db = getDatabase();
+  const allocatedAmount = calculateAllocatedAmount(
+    budgetTotal,
+    input.allocation_type,
+    input.allocation_value
+  );
+  await db.runAsync(
+    `UPDATE categories
+     SET name = ?, allocation_type = ?, allocation_value = ?, allocated_amount = ?
+     WHERE id = ?`,
+    [input.name, input.allocation_type, input.allocation_value, allocatedAmount, id]
+  );
+};
+
 export const deleteAllCategories = async (): Promise<void> => {
   const db = getDatabase();
   await db.execAsync('DELETE FROM categories;');

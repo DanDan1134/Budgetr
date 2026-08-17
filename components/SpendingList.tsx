@@ -1,9 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  Alert,
+} from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 import { Spending } from '../services/spendingService';
 import { Category } from '../services/categoryService';
+import { dayLabel } from '../utils/calculations';
 
 const TrashIcon = () => (
   <View style={styles.trash}>
@@ -19,15 +28,18 @@ const TrashIcon = () => (
 interface SpendingListProps {
   spendings: Spending[];
   categories: Category[];
-  onDeleteSpending: (id: number) => void;
+  onDeleteSpending: (spending: Spending) => void;
+  onEditSpending: (spending: Spending) => void;
 }
 
 export const SpendingList: React.FC<SpendingListProps> = ({
   spendings,
   categories,
   onDeleteSpending,
+  onEditSpending,
 }) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'all'>('all');
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     if (selectedCategoryId === 'all') {
@@ -38,55 +50,42 @@ export const SpendingList: React.FC<SpendingListProps> = ({
     }
   }, [categories, selectedCategoryId]);
 
-  const filteredSpendings = useMemo(() => {
-    if (selectedCategoryId === 'all') {
-      return spendings;
-    }
-    return spendings.filter((spending) => spending.category_id === selectedCategoryId);
-  }, [spendings, selectedCategoryId]);
-
   const getCategoryName = (categoryId: number): string => {
     const category = categories.find((c) => c.id === categoryId);
     return category ? category.name : 'Unknown';
   };
 
-  const renderRightActions = (id: number) => (
-    <TouchableOpacity
-      style={styles.deleteAction}
-      onPress={() => onDeleteSpending(id)}
-      accessibilityRole="button"
-      accessibilityLabel="Delete spending"
-    >
-      <TrashIcon />
-    </TouchableOpacity>
-  );
+  const filteredSpendings = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return spendings.filter((spending) => {
+      const matchesCategory =
+        selectedCategoryId === 'all' || spending.category_id === selectedCategoryId;
+      const haystack = `${getCategoryName(spending.category_id)} ${spending.description ?? ''}`.toLowerCase();
+      const matchesQuery = needle.length === 0 || haystack.includes(needle);
+      return matchesCategory && matchesQuery;
+    });
+  }, [spendings, selectedCategoryId, query, categories]);
 
-  const renderItem = ({ item }: { item: Spending }) => (
-    <View style={styles.itemWrap}>
-      <Swipeable
-        overshootRight={false}
-        rightThreshold={40}
-        activeOffsetX={[-20, 20]}
-        failOffsetY={[-12, 12]}
-        renderRightActions={() => renderRightActions(item.id)}
-      >
-        <View style={styles.item}>
-          <View style={styles.itemContent}>
-            <View style={styles.itemHeader}>
-              <Text style={styles.categoryName}>{getCategoryName(item.category_id)}</Text>
-              <Text style={styles.amount}>${item.amount.toFixed(2)}</Text>
-            </View>
-            {item.description && (
-              <Text style={styles.description}>{item.description}</Text>
-            )}
-            <Text style={styles.date}>
-              {new Date(item.created_at).toLocaleDateString()}
-            </Text>
-          </View>
-        </View>
-      </Swipeable>
-    </View>
-  );
+  const grouped = useMemo(() => {
+    const groups: { label: string; items: Spending[] }[] = [];
+    for (const spending of filteredSpendings) {
+      const label = dayLabel(spending.created_at);
+      const existing = groups.find((group) => group.label === label);
+      if (existing) {
+        existing.items.push(spending);
+      } else {
+        groups.push({ label, items: [spending] });
+      }
+    }
+    return groups;
+  }, [filteredSpendings]);
+
+  const confirmDelete = (spending: Spending) => {
+    Alert.alert('Delete spending', 'Remove this spending?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => onDeleteSpending(spending) },
+    ]);
+  };
 
   return (
     <View style={styles.container}>
@@ -104,7 +103,6 @@ export const SpendingList: React.FC<SpendingListProps> = ({
             onPress={() => setSelectedCategoryId('all')}
             accessibilityRole="button"
             accessibilityState={{ selected: selectedCategoryId === 'all' }}
-            accessibilityLabel="All categories"
           >
             <Text style={[styles.chipText, selectedCategoryId === 'all' && styles.chipTextActive]}>
               All
@@ -119,7 +117,6 @@ export const SpendingList: React.FC<SpendingListProps> = ({
                 onPress={() => setSelectedCategoryId(category.id)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
-                accessibilityLabel={category.name}
               >
                 <Text style={[styles.chipText, active && styles.chipTextActive]}>
                   {category.name}
@@ -129,19 +126,64 @@ export const SpendingList: React.FC<SpendingListProps> = ({
           })}
         </ScrollView>
       )}
+
+      <TextInput
+        style={styles.search}
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search spendings"
+        placeholderTextColor={Colors.textSecondary}
+      />
+
       {filteredSpendings.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
-            {spendings.length === 0 ? 'No spendings yet' : 'No spendings in this category'}
+            {spendings.length === 0 ? 'No spendings yet' : 'No spendings match this filter'}
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={filteredSpendings}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
-          scrollEnabled={false}
-        />
+        grouped.map((group) => (
+          <View key={group.label}>
+            <Text style={styles.dayLabel}>{group.label}</Text>
+            {group.items.map((item) => (
+              <View key={item.id} style={styles.itemWrap}>
+                <Swipeable
+                  overshootRight={false}
+                  rightThreshold={40}
+                  activeOffsetX={[-20, 20]}
+                  failOffsetY={[-12, 12]}
+                  renderRightActions={() => (
+                    <TouchableOpacity
+                      style={styles.deleteAction}
+                      onPress={() => confirmDelete(item)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Delete spending"
+                    >
+                      <TrashIcon />
+                    </TouchableOpacity>
+                  )}
+                >
+                  <TouchableOpacity
+                    style={styles.item}
+                    onPress={() => onEditSpending(item)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.itemHeader}>
+                      <Text style={styles.categoryName}>{getCategoryName(item.category_id)}</Text>
+                      <Text style={styles.amount}>${item.amount.toFixed(2)}</Text>
+                    </View>
+                    {item.description ? (
+                      <Text style={styles.description}>{item.description}</Text>
+                    ) : null}
+                    <Text style={styles.date}>
+                      {new Date(item.created_at).toLocaleDateString()}
+                    </Text>
+                  </TouchableOpacity>
+                </Swipeable>
+              </View>
+            ))}
+          </View>
+        ))
       )}
     </View>
   );
@@ -158,7 +200,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   chipScroll: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   chipRow: {
     gap: Spacing.sm,
@@ -183,6 +225,22 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontWeight: '600',
   },
+  search: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    color: Colors.textPrimary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  dayLabel: {
+    color: Colors.textSecondary,
+    fontSize: FontSizes.sm,
+    marginBottom: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
   itemWrap: {
     marginBottom: Spacing.sm,
     borderRadius: BorderRadius.md,
@@ -191,9 +249,6 @@ const styles = StyleSheet.create({
   item: {
     backgroundColor: Colors.cardBackground,
     padding: Spacing.md,
-  },
-  itemContent: {
-    flex: 1,
   },
   itemHeader: {
     flexDirection: 'row',

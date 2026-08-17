@@ -29,6 +29,24 @@ export const deleteSpending = async (id: number): Promise<void> => {
   removePreviewSpending(id);
 };
 
+export const updateSpending = async (
+  id: number,
+  categoryId: number,
+  amount: number,
+  description?: string
+): Promise<void> => {
+  const current = previewSpendings.find((item) => item.id === id);
+  if (!current) {
+    return;
+  }
+  removePreviewSpending(id);
+  addPreviewSpending(categoryId, amount, description);
+};
+
+export const restoreSpending = async (spending: Spending): Promise<void> => {
+  addPreviewSpending(spending.category_id, spending.amount, spending.description || undefined);
+};
+
 export const deleteAllSpendings = async (): Promise<void> => {
   clearPreviewSpendings();
 };

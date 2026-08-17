@@ -121,6 +121,31 @@ export const closeCurrentPeriod = async (): Promise<boolean> => {
   return true;
 };
 
+export const exportHistoryCsv = async (): Promise<string> => {
+  const periods = await getHistoryPeriods();
+  const lines = [
+    'period_id,started_at,closed_at,budget,allocated,spent,saved,spendings,categories',
+  ];
+
+  for (const period of periods) {
+    lines.push(
+      [
+        period.id,
+        period.started_at,
+        period.closed_at,
+        period.total_budget.toFixed(2),
+        period.total_allocated.toFixed(2),
+        period.total_spent.toFixed(2),
+        period.total_saved.toFixed(2),
+        period.spending_count,
+        period.category_count,
+      ].join(',')
+    );
+  }
+
+  return lines.join('\n');
+};
+
 export const getHistoryPeriods = async (): Promise<HistoryPeriod[]> => {
   const db = getDatabase();
   return db.getAllAsync<HistoryPeriod>('SELECT * FROM periods ORDER BY closed_at DESC');

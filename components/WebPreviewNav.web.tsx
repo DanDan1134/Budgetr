@@ -13,6 +13,9 @@ const pages = [
   { key: 'setup-categories', label: 'Setup Categories', path: '/setup/categories' },
   { key: 'home', label: 'Home', path: '/' },
   { key: 'history', label: 'History', path: '/history' },
+  { key: 'recurring', label: 'Recurring', path: '/recurring' },
+  { key: 'goals', label: 'Goals', path: '/goals' },
+  { key: 'settings', label: 'Settings', path: '/settings' },
   { key: 'not-found', label: '404', path: '/missing-page' },
 ] as const;
 
@@ -48,6 +51,11 @@ export const WebPreviewNav = () => {
       return;
     }
 
+    if (key === 'recurring' || key === 'goals' || key === 'settings') {
+      router.replace(pages.find((page) => page.key === key)?.path ?? '/');
+      return;
+    }
+
     router.replace('/missing-page');
   };
 
@@ -60,6 +68,9 @@ export const WebPreviewNav = () => {
           (page.key === 'setup-budget' && pathname === '/setup/budget') ||
           (page.key === 'setup-categories' && pathname === '/setup/categories') ||
           (page.key === 'history' && pathname === '/history') ||
+          (page.key === 'recurring' && pathname === '/recurring') ||
+          (page.key === 'goals' && pathname === '/goals') ||
+          (page.key === 'settings' && pathname === '/settings') ||
           (page.key === 'not-found' && pathname === '/missing-page');
 
         return (

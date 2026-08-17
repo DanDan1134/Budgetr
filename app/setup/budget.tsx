@@ -7,6 +7,7 @@ import { ScreenScroll } from '../../components/ScreenScroll';
 export default function BudgetScreen() {
   const router = useRouter();
   const [budgetAmount, setBudgetAmount] = useState('');
+  const [income, setIncome] = useState('');
 
   const handleContinue = () => {
     const amount = parseFloat(budgetAmount);
@@ -17,7 +18,7 @@ export default function BudgetScreen() {
 
     router.push({
       pathname: '/setup/categories',
-      params: { budgetAmount: amount.toString() },
+      params: { budgetAmount: amount.toString(), income: income || '0' },
     });
   };
 
@@ -37,6 +38,19 @@ export default function BudgetScreen() {
             placeholderTextColor={Colors.textSecondary}
             keyboardType="decimal-pad"
             autoFocus
+          />
+        </View>
+
+        <Text style={styles.incomeLabel}>Income this month (optional)</Text>
+        <View style={styles.inputContainer}>
+          <Text style={styles.dollarSign}>$</Text>
+          <TextInput
+            style={styles.input}
+            value={income}
+            onChangeText={setIncome}
+            placeholder="0.00"
+            placeholderTextColor={Colors.textSecondary}
+            keyboardType="decimal-pad"
           />
         </View>
 
@@ -96,6 +110,12 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xxl,
     color: Colors.textPrimary,
     fontWeight: 'bold',
+  },
+  incomeLabel: {
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
   },
   button: {
     backgroundColor: Colors.primaryGreen,

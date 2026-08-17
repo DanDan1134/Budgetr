@@ -2,21 +2,30 @@
   "expo": {
     "name": "Budgetr",
     "slug": "budgetr",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "owner": "daniel18700",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "scheme": "budgetr",
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-sqlite",
+      "expo-local-authentication",
+      [
+        "expo-notifications",
+        {
+          "sounds": []
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dandan.budgetr",
       "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "Unlock Budgetr on this device."
       }
     },
     "android": {

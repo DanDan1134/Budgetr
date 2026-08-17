@@ -13,8 +13,9 @@ import { ScreenScroll } from '../../components/ScreenScroll';
 import { AllocationToggle } from '../../components/AllocationToggle';
 import { initDatabase } from '../../services/database';
 import { createBudget } from '../../services/budgetService';
-import { startCurrentPeriod } from '../../services/historyService';
+import { getHistoryPeriodDetail, getHistoryPeriods, startCurrentPeriod } from '../../services/historyService';
 import { createCategories, CategoryInput } from '../../services/categoryService';
+import { setIncome } from '../../services/settingsService';
 import { calculateAllocatedAmount } from '../../utils/calculations';
 
 interface CategoryRow {
@@ -29,10 +30,38 @@ export default function CategoriesScreen() {
   const params = useLocalSearchParams();
   const parsedBudget = parseFloat(params.budgetAmount as string);
   const budgetAmount = Number.isFinite(parsedBudget) ? parsedBudget : 2000;
+  const parsedIncome = parseFloat(params.income as string);
 
   const [categories, setCategories] = useState<CategoryRow[]>([
     { id: '1', name: '', allocationType: 'percentage', allocationValue: '' },
   ]);
+
+  const copyLastPeriod = async () => {
+    try {
+      await initDatabase();
+      const periods = await getHistoryPeriods();
+      if (periods.length === 0) {
+        Alert.alert('No history', 'There is no last period to copy yet.');
+        return;
+      }
+      const detail = await getHistoryPeriodDetail(periods[0].id);
+      if (!detail || detail.categories.length === 0) {
+        Alert.alert('No history', 'The last period has no categories.');
+        return;
+      }
+      setCategories(
+        detail.categories.map((category, index) => ({
+          id: `${Date.now()}-${index}`,
+          name: category.name,
+          allocationType: 'dollar' as const,
+          allocationValue: String(category.allocated_amount),
+        }))
+      );
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Could not copy last period');
+    }
+  };
 
   const addCategory = () => {
     setCategories([
@@ -120,6 +149,9 @@ export default function CategoriesScreen() {
       }));
 
       await createCategories(budgetId, budgetAmount, categoryInputs);
+      if (Number.isFinite(parsedIncome) && parsedIncome > 0) {
+        await setIncome(parsedIncome);
+      }
       await startCurrentPeriod();
 
       router.replace('/');
@@ -138,6 +170,9 @@ export default function CategoriesScreen() {
         <Text style={styles.subtitle}>
           Budget: ${budgetAmount.toFixed(2)}
         </Text>
+        <TouchableOpacity style={styles.copyButton} onPress={copyLastPeriod}>
+          <Text style={styles.copyButtonText}>Copy last period categories</Text>
+        </TouchableOpacity>
 
         {categories.map((category, index) => (
           <View key={category.id} style={styles.categoryRow}>
@@ -237,7 +272,16 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: FontSizes.md,
     color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+  },
+  copyButton: {
+    alignSelf: 'flex-start',
     marginBottom: Spacing.lg,
+  },
+  copyButtonText: {
+    color: Colors.primaryGreen,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   categoryRow: {
     backgroundColor: Colors.cardBackground,
