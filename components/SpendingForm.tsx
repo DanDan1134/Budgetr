@@ -12,12 +12,19 @@ import {
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 import { Category } from '../services/categoryService';
 
+const QUICK_AMOUNTS = [5, 10, 20, 50];
+
 interface SpendingFormProps {
   categories: Category[];
-  onAddSpending: (categoryId: number, amount: number, description?: string) => void;
+  onAddSpending: (categoryId: number, amount: number, description?: string) => void | Promise<void>;
+  onClose?: () => void;
 }
 
-export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpending }) => {
+export const SpendingForm: React.FC<SpendingFormProps> = ({
+  categories,
+  onAddSpending,
+  onClose,
+}) => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(
     categories.length > 0 ? categories[0].id : null
   );
@@ -38,7 +45,7 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
   const selectedName =
     categories.find((category) => category.id === selectedCategory)?.name ?? 'Select a category';
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!selectedCategory) {
       Alert.alert('Error', 'Please select a category');
       return;
@@ -50,7 +57,7 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
       return;
     }
 
-    onAddSpending(selectedCategory, parsedAmount, description || undefined);
+    await onAddSpending(selectedCategory, parsedAmount, description || undefined);
     setDescription('');
     setAmount('');
   };
@@ -67,7 +74,14 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Add Spending</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Quick spending</Text>
+        {onClose ? (
+          <TouchableOpacity onPress={onClose} hitSlop={8}>
+            <Text style={styles.closeText}>Done</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
       <View style={styles.pickerContainer}>
         <Text style={styles.label}>Category</Text>
@@ -117,7 +131,33 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
       </Modal>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Description (optional)</Text>
+        <Text style={styles.label}>Amount ($)</Text>
+        <TextInput
+          style={styles.input}
+          value={amount}
+          onChangeText={setAmount}
+          placeholder="0.00"
+          placeholderTextColor={Colors.textSecondary}
+          keyboardType="decimal-pad"
+          autoFocus
+        />
+        <View style={styles.quickRow}>
+          {QUICK_AMOUNTS.map((value) => (
+            <TouchableOpacity
+              key={value}
+              style={[styles.quickChip, amount === String(value) && styles.quickChipActive]}
+              onPress={() => setAmount(String(value))}
+            >
+              <Text style={[styles.quickText, amount === String(value) && styles.quickTextActive]}>
+                ${value}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Note (optional)</Text>
         <TextInput
           style={styles.input}
           value={description}
@@ -127,21 +167,10 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
         />
       </View>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Amount ($)</Text>
-        <TextInput
-          style={styles.input}
-          value={amount}
-          onChangeText={setAmount}
-          placeholder="0.00"
-          placeholderTextColor={Colors.textSecondary}
-          keyboardType="decimal-pad"
-        />
-      </View>
-
       <TouchableOpacity style={styles.button} onPress={handleAdd}>
-        <Text style={styles.buttonText}>Add Spending</Text>
+        <Text style={styles.buttonText}>Add spending</Text>
       </TouchableOpacity>
+      <Text style={styles.hint}>Stays open so you can add more</Text>
     </View>
   );
 };
@@ -149,15 +178,26 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.cardBackground,
-    borderRadius: BorderRadius.lg,
+    borderTopLeftRadius: BorderRadius.lg,
+    borderTopRightRadius: BorderRadius.lg,
     padding: Spacing.lg,
+    paddingBottom: Spacing.xl,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: Spacing.md,
   },
   title: {
     fontSize: FontSizes.lg,
     fontWeight: 'bold',
     color: Colors.textPrimary,
-    marginBottom: Spacing.md,
+  },
+  closeText: {
+    color: Colors.primaryGreen,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   pickerContainer: {
     marginBottom: Spacing.md,
@@ -234,6 +274,30 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontSize: FontSizes.md,
   },
+  quickRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  quickChip: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 999,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  quickChipActive: {
+    backgroundColor: Colors.primaryGreen,
+    borderColor: Colors.primaryGreen,
+  },
+  quickText: {
+    color: Colors.textSecondary,
+    fontSize: FontSizes.sm,
+  },
+  quickTextActive: {
+    color: Colors.textPrimary,
+    fontWeight: '600',
+  },
   button: {
     backgroundColor: Colors.primaryGreen,
     borderRadius: BorderRadius.md,
@@ -244,6 +308,12 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontSize: FontSizes.md,
     fontWeight: 'bold',
+  },
+  hint: {
+    color: Colors.textSecondary,
+    fontSize: FontSizes.sm,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
   },
   noCategories: {
     color: Colors.textSecondary,

@@ -1,5 +1,13 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, RefreshControl, Alert } from 'react-native';
+import {
+  StyleSheet,
+  RefreshControl,
+  Alert,
+  View,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+} from 'react-native';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Colors, Spacing } from '../constants/theme';
 import { ScreenScroll } from '../components/ScreenScroll';
@@ -31,12 +39,13 @@ export default function HomeScreen() {
   const [spendings, setSpendings] = useState<Spending[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
 
   const loadData = async () => {
     try {
       await initDatabase();
       const currentBudget = await getCurrentBudget();
-      
+
       if (!currentBudget) {
         router.replace('/setup/budget');
         return;
@@ -75,7 +84,6 @@ export default function HomeScreen() {
     try {
       await createSpending(categoryId, amount, description);
       await loadData();
-      
     } catch (error) {
       console.error('Error adding spending:', error);
       Alert.alert('Error', 'Failed to add spending');
@@ -125,49 +133,116 @@ export default function HomeScreen() {
   const remaining = calculateRemainingBudget(budget.total_amount, totalSpent);
 
   return (
-    <ScreenScroll
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={Colors.primaryGreen}
+    <View style={styles.page}>
+      <ScreenScroll
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primaryGreen}
+          />
+        }
+      >
+        <BudgetSummary
+          totalBudget={budget.total_amount}
+          totalAllocated={totalAllocated}
+          totalSpent={totalSpent}
+          remaining={remaining}
         />
-      }
-    >
-      <BudgetSummary
-        totalBudget={budget.total_amount}
-        totalAllocated={totalAllocated}
-        totalSpent={totalSpent}
-        remaining={remaining}
-      />
 
-      <CategoryList
-        categories={categories}
-        spendings={spendings}
-        budgetTotal={budget.total_amount}
-        onAddCategory={handleAddCategory}
-        onDeleteCategory={handleDeleteCategory}
-      />
+        <CategoryList
+          categories={categories}
+          spendings={spendings}
+          budgetTotal={budget.total_amount}
+          onAddCategory={handleAddCategory}
+          onDeleteCategory={handleDeleteCategory}
+        />
 
-      <SpendingForm categories={categories} onAddSpending={handleAddSpending} />
+        <SpendingList
+          spendings={spendings}
+          categories={categories}
+          onDeleteSpending={handleDeleteSpending}
+        />
+      </ScreenScroll>
 
-      <SpendingList
-        spendings={spendings}
-        categories={categories}
-        onDeleteSpending={handleDeleteSpending}
-      />
-    </ScreenScroll>
+      {categories.length > 0 && (
+        <TouchableOpacity
+          style={styles.playButton}
+          onPress={() => setFormOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Open quick spending"
+          activeOpacity={0.85}
+        >
+          <View style={styles.playIcon} />
+        </TouchableOpacity>
+      )}
+
+      <Modal
+        visible={formOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setFormOpen(false)}
+      >
+        <View style={styles.modalRoot}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setFormOpen(false)} />
+          <View style={styles.sheet}>
+            <SpendingForm
+              categories={categories}
+              onAddSpending={handleAddSpending}
+              onClose={() => setFormOpen(false)}
+            />
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  page: {
     flex: 1,
     backgroundColor: Colors.background,
   },
+  container: {
+    flex: 1,
+  },
   content: {
     padding: Spacing.lg,
+    paddingBottom: 110,
+  },
+  playButton: {
+    position: 'absolute',
+    alignSelf: 'center',
+    bottom: Spacing.lg,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.primaryGreen,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playIcon: {
+    width: 0,
+    height: 0,
+    marginLeft: 4,
+    borderTopWidth: 12,
+    borderBottomWidth: 12,
+    borderLeftWidth: 20,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderLeftColor: Colors.textPrimary,
+  },
+  modalRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+  },
+  sheet: {
+    width: '100%',
   },
 });
