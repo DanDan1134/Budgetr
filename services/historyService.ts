@@ -126,6 +126,13 @@ export const getHistoryPeriods = async (): Promise<HistoryPeriod[]> => {
   return db.getAllAsync<HistoryPeriod>('SELECT * FROM periods ORDER BY closed_at DESC');
 };
 
+export const deleteHistoryPeriod = async (periodId: number): Promise<void> => {
+  const db = getDatabase();
+  await db.runAsync('DELETE FROM period_spendings WHERE period_id = ?', [periodId]);
+  await db.runAsync('DELETE FROM period_categories WHERE period_id = ?', [periodId]);
+  await db.runAsync('DELETE FROM periods WHERE id = ?', [periodId]);
+};
+
 export const getHistoryPeriodDetail = async (
   periodId: number
 ): Promise<HistoryPeriodDetail | null> => {

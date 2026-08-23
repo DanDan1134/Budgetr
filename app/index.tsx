@@ -7,16 +7,18 @@ import {
   TouchableOpacity,
   Modal,
   Pressable,
+  ScrollView,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { Colors, Spacing } from '../constants/theme';
+import { Colors, Spacing, BorderRadius } from '../constants/theme';
 import { ScreenScroll } from '../components/ScreenScroll';
 import { BudgetSummary } from '../components/BudgetSummary';
 import { CategoryList } from '../components/CategoryList';
 import { SpendingForm } from '../components/SpendingForm';
 import { SpendingList } from '../components/SpendingList';
 import { initDatabase } from '../services/database';
-import { getCurrentBudget, Budget } from '../services/budgetService';
+import { getCurrentBudget, updateBudget, Budget } from '../services/budgetService';
 import {
   getCategories,
   createCategory,
@@ -124,6 +126,20 @@ export default function HomeScreen() {
     }
   };
 
+  const handleUpdateBudget = async (amount: number) => {
+    if (!budget) {
+      return;
+    }
+
+    try {
+      await updateBudget(budget.id, amount);
+      await loadData();
+    } catch (error) {
+      console.error('Error updating budget:', error);
+      Alert.alert('Error', 'Failed to update budget');
+    }
+  };
+
   if (loading || !budget) {
     return null;
   }
@@ -150,6 +166,7 @@ export default function HomeScreen() {
           totalAllocated={totalAllocated}
           totalSpent={totalSpent}
           remaining={remaining}
+          onUpdateBudget={handleUpdateBudget}
         />
 
         <CategoryList
@@ -175,26 +192,35 @@ export default function HomeScreen() {
           accessibilityLabel="Open quick spending"
           activeOpacity={0.85}
         >
-          <View style={styles.playIcon} />
+          <View style={styles.plusIcon}>
+            <View style={styles.plusBarHorizontal} />
+            <View style={styles.plusBarVertical} />
+          </View>
         </TouchableOpacity>
       )}
 
       <Modal
         visible={formOpen}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setFormOpen(false)}
       >
-        <View style={styles.modalRoot}>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalRoot}>
           <Pressable style={styles.modalBackdrop} onPress={() => setFormOpen(false)} />
           <View style={styles.sheet}>
-            <SpendingForm
-              categories={categories}
-              onAddSpending={handleAddSpending}
-              onClose={() => setFormOpen(false)}
-            />
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              bounces={false}
+              showsVerticalScrollIndicator={false}
+            >
+              <SpendingForm
+                categories={categories}
+                onAddSpending={handleAddSpending}
+                onClose={() => setFormOpen(false)}
+              />
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -223,20 +249,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  playIcon: {
-    width: 0,
-    height: 0,
-    marginLeft: 4,
-    borderTopWidth: 12,
-    borderBottomWidth: 12,
-    borderLeftWidth: 20,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: Colors.textPrimary,
+  plusIcon: {
+    width: 22,
+    height: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusBarHorizontal: {
+    position: 'absolute',
+    width: 22,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: Colors.textPrimary,
+  },
+  plusBarVertical: {
+    position: 'absolute',
+    width: 3,
+    height: 22,
+    borderRadius: 1.5,
+    backgroundColor: Colors.textPrimary,
   },
   modalRoot: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -244,5 +281,10 @@ const styles = StyleSheet.create({
   },
   sheet: {
     width: '100%',
+    maxWidth: 480,
+    maxHeight: '90%',
+    alignSelf: 'center',
+    overflow: 'hidden',
+    borderRadius: BorderRadius.lg,
   },
 });

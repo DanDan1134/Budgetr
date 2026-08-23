@@ -1,4 +1,5 @@
 import { getDatabase } from './database';
+import { calculateAllocatedAmount } from '../utils/calculations';
 
 export interface Budget {
   id: number;
@@ -27,6 +28,29 @@ export const getCurrentBudget = async (): Promise<Budget | null> => {
   );
   
   return result || null;
+};
+
+export const updateBudget = async (id: number, totalAmount: number): Promise<void> => {
+  const db = getDatabase();
+  await db.runAsync('UPDATE budget SET total_amount = ? WHERE id = ?', [totalAmount, id]);
+
+  const categories = await db.getAllAsync<{
+    id: number;
+    allocation_type: 'percentage' | 'dollar';
+    allocation_value: number;
+  }>('SELECT id, allocation_type, allocation_value FROM categories');
+
+  for (const category of categories) {
+    const allocatedAmount = calculateAllocatedAmount(
+      totalAmount,
+      category.allocation_type,
+      category.allocation_value
+    );
+    await db.runAsync('UPDATE categories SET allocated_amount = ? WHERE id = ?', [
+      allocatedAmount,
+      category.id,
+    ]);
+  }
 };
 
 export const deleteBudget = async (): Promise<void> => {

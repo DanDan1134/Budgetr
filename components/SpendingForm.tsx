@@ -178,8 +178,7 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.cardBackground,
-    borderTopLeftRadius: BorderRadius.lg,
-    borderTopRightRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     paddingBottom: Spacing.xl,
   },

@@ -1,14 +1,27 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Alert } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { useFocusEffect } from 'expo-router';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 import { ScreenScroll } from '../components/ScreenScroll';
 import {
+  deleteHistoryPeriod,
   getHistoryPeriodDetail,
   getHistoryPeriods,
   type HistoryPeriod,
   type HistoryPeriodDetail,
 } from '../services/historyService';
+
+const TrashIcon = () => (
+  <View style={styles.trash}>
+    <View style={styles.trashLid} />
+    <View style={styles.trashBody}>
+      <View style={styles.trashLine} />
+      <View style={styles.trashLine} />
+      <View style={styles.trashLine} />
+    </View>
+  </View>
+);
 
 const formatMoney = (value: number) => `$${value.toFixed(2)}`;
 
@@ -42,6 +55,19 @@ export default function HistoryScreen() {
     setSelectedPeriod(detail);
     setCategoryFilter('All');
     setDateFilter('All');
+  };
+
+  const handleDeletePeriod = async (periodId: number) => {
+    try {
+      await deleteHistoryPeriod(periodId);
+      if (selectedPeriod?.id === periodId) {
+        setSelectedPeriod(null);
+      }
+      await loadPeriods();
+    } catch (error) {
+      console.error('Error deleting history period:', error);
+      Alert.alert('Error', 'Failed to delete history period');
+    }
   };
 
   const onRefresh = async () => {
@@ -199,22 +225,40 @@ export default function HistoryScreen() {
         </View>
       ) : (
         periods.map((period) => (
-          <TouchableOpacity
-            key={period.id}
-            style={styles.periodCard}
-            onPress={() => openPeriod(period.id)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.periodTitle}>{formatRange(period.started_at, period.closed_at)}</Text>
-            <View style={styles.periodStats}>
-              <PeriodStat label="Budget" value={formatMoney(period.total_budget)} />
-              <PeriodStat label="Used" value={formatMoney(period.total_spent)} />
-              <PeriodStat label="Saved" value={formatMoney(period.total_saved)} highlight />
-            </View>
-            <Text style={styles.itemMeta}>
-              {period.spending_count} spendings in {period.category_count} categories
-            </Text>
-          </TouchableOpacity>
+          <View key={period.id} style={styles.periodWrap}>
+            <Swipeable
+              overshootRight={false}
+              rightThreshold={40}
+              activeOffsetX={[-20, 20]}
+              failOffsetY={[-12, 12]}
+              renderRightActions={() => (
+                <TouchableOpacity
+                  style={styles.deleteAction}
+                  onPress={() => handleDeletePeriod(period.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete history period"
+                >
+                  <TrashIcon />
+                </TouchableOpacity>
+              )}
+            >
+              <TouchableOpacity
+                style={styles.periodCard}
+                onPress={() => openPeriod(period.id)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.periodTitle}>{formatRange(period.started_at, period.closed_at)}</Text>
+                <View style={styles.periodStats}>
+                  <PeriodStat label="Budget" value={formatMoney(period.total_budget)} />
+                  <PeriodStat label="Used" value={formatMoney(period.total_spent)} />
+                  <PeriodStat label="Saved" value={formatMoney(period.total_saved)} highlight />
+                </View>
+                <Text style={styles.itemMeta}>
+                  {period.spending_count} spendings in {period.category_count} categories
+                </Text>
+              </TouchableOpacity>
+            </Swipeable>
+          </View>
         ))
       )}
     </ScreenScroll>
@@ -335,11 +379,45 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginLeft: Spacing.md,
   },
+  periodWrap: {
+    marginBottom: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+  },
   periodCard: {
     backgroundColor: Colors.cardBackground,
-    borderRadius: BorderRadius.lg,
     padding: Spacing.md,
-    marginBottom: Spacing.md,
+  },
+  deleteAction: {
+    backgroundColor: Colors.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 72,
+  },
+  trash: {
+    alignItems: 'center',
+  },
+  trashLid: {
+    width: 20,
+    height: 3,
+    borderRadius: 1,
+    backgroundColor: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  trashBody: {
+    width: 16,
+    height: 18,
+    borderWidth: 2,
+    borderColor: Colors.textPrimary,
+    borderRadius: 2,
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    paddingTop: 3,
+  },
+  trashLine: {
+    width: 2,
+    height: 10,
+    backgroundColor: Colors.textPrimary,
   },
   periodTitle: {
     color: Colors.textPrimary,

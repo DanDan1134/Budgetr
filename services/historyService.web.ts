@@ -2,6 +2,7 @@ import {
   closePreviewPeriod,
   getPreviewHistoryDetail,
   getPreviewHistoryPeriods,
+  removePreviewHistoryPeriod,
   startPreviewPeriod,
 } from './webPreviewStore';
 
@@ -49,6 +50,10 @@ export const closeCurrentPeriod = async (): Promise<boolean> => {
 
 export const getHistoryPeriods = async (): Promise<HistoryPeriod[]> => {
   return getPreviewHistoryPeriods();
+};
+
+export const deleteHistoryPeriod = async (periodId: number): Promise<void> => {
+  removePreviewHistoryPeriod(periodId);
 };
 
 export const getHistoryPeriodDetail = async (

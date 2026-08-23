@@ -285,6 +285,29 @@ export const getPreviewHistoryPeriods = () =>
 export const getPreviewHistoryDetail = (periodId: number) =>
   previewHistory.find((period) => period.id === periodId) ?? null;
 
+export const updatePreviewBudgetAmount = (totalAmount: number): void => {
+  if (!previewBudget) {
+    return;
+  }
+
+  previewBudget = {
+    ...previewBudget,
+    total_amount: totalAmount,
+  };
+  previewCategories = previewCategories.map((category) => ({
+    ...category,
+    allocated_amount: calculateAllocatedAmount(
+      totalAmount,
+      category.allocation_type,
+      category.allocation_value
+    ),
+  }));
+};
+
+export const removePreviewHistoryPeriod = (periodId: number): void => {
+  previewHistory = previewHistory.filter((period) => period.id !== periodId);
+};
+
 export const setPreviewBudget = (totalAmount: number): number => {
   const id = nextId++;
   previewBudget = {
