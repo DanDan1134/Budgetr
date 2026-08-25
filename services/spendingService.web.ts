@@ -3,6 +3,7 @@ import {
   clearPreviewSpendings,
   previewSpendings,
   removePreviewSpending,
+  updatePreviewSpending,
 } from './webPreviewStore';
 
 export interface Spending {
@@ -23,6 +24,15 @@ export const createSpending = async (
 
 export const getSpendings = async (): Promise<Spending[]> => {
   return previewSpendings;
+};
+
+export const updateSpending = async (
+  id: number,
+  categoryId: number,
+  amount: number,
+  description?: string
+): Promise<void> => {
+  updatePreviewSpending(id, categoryId, amount, description);
 };
 
 export const deleteSpending = async (id: number): Promise<void> => {

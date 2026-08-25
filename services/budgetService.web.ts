@@ -2,6 +2,7 @@ import {
   clearPreviewBudget,
   previewBudget,
   setPreviewBudget,
+  updatePreviewBudgetAmount,
 } from './webPreviewStore';
 
 export interface Budget {
@@ -16,6 +17,10 @@ export const createBudget = async (totalAmount: number): Promise<number> => {
 
 export const getCurrentBudget = async (): Promise<Budget | null> => {
   return previewBudget;
+};
+
+export const updateBudget = async (_id: number, totalAmount: number): Promise<void> => {
+  updatePreviewBudgetAmount(totalAmount);
 };
 
 export const deleteBudget = async (): Promise<void> => {

@@ -11,19 +11,30 @@ import {
 } from 'react-native';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 import { Category } from '../services/categoryService';
+import { Spending } from '../services/spendingService';
 
 interface SpendingFormProps {
   categories: Category[];
-  onAddSpending: (categoryId: number, amount: number, description?: string) => void;
+  initialSpending?: Spending | null;
+  onSaveSpending: (categoryId: number, amount: number, description?: string) => void | Promise<void>;
+  onClose?: () => void;
 }
 
-export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpending }) => {
+export const SpendingForm: React.FC<SpendingFormProps> = ({
+  categories,
+  initialSpending,
+  onSaveSpending,
+  onClose,
+}) => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(
-    categories.length > 0 ? categories[0].id : null
+    initialSpending?.category_id ?? (categories.length > 0 ? categories[0].id : null)
   );
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState(initialSpending?.description ?? '');
+  const [amount, setAmount] = useState(
+    initialSpending ? String(initialSpending.amount) : ''
+  );
+  const isEditing = Boolean(initialSpending);
 
   useEffect(() => {
     if (categories.length === 0) {
@@ -38,7 +49,7 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
   const selectedName =
     categories.find((category) => category.id === selectedCategory)?.name ?? 'Select a category';
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!selectedCategory) {
       Alert.alert('Error', 'Please select a category');
       return;
@@ -50,7 +61,11 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
       return;
     }
 
-    onAddSpending(selectedCategory, parsedAmount, description || undefined);
+    await onSaveSpending(selectedCategory, parsedAmount, description || undefined);
+    if (isEditing) {
+      onClose?.();
+      return;
+    }
     setDescription('');
     setAmount('');
   };
@@ -67,7 +82,14 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Add Spending</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Spendings</Text>
+        {onClose ? (
+          <TouchableOpacity onPress={onClose} hitSlop={8}>
+            <Text style={styles.closeText}>Done</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
       <View style={styles.pickerContainer}>
         <Text style={styles.label}>Category</Text>
@@ -117,7 +139,20 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
       </Modal>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Description (optional)</Text>
+        <Text style={styles.label}>Amount ($)</Text>
+        <TextInput
+          style={styles.input}
+          value={amount}
+          onChangeText={setAmount}
+          placeholder="0.00"
+          placeholderTextColor={Colors.textSecondary}
+          keyboardType="decimal-pad"
+          autoFocus={!isEditing}
+        />
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Note (optional)</Text>
         <TextInput
           style={styles.input}
           value={description}
@@ -127,20 +162,8 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({ categories, onAddSpe
         />
       </View>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Amount ($)</Text>
-        <TextInput
-          style={styles.input}
-          value={amount}
-          onChangeText={setAmount}
-          placeholder="0.00"
-          placeholderTextColor={Colors.textSecondary}
-          keyboardType="decimal-pad"
-        />
-      </View>
-
       <TouchableOpacity style={styles.button} onPress={handleAdd}>
-        <Text style={styles.buttonText}>Add Spending</Text>
+        <Text style={styles.buttonText}>{isEditing ? 'Save spending' : 'Add spending'}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -150,20 +173,29 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.cardBackground,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    padding: Spacing.md,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
   },
   title: {
     fontSize: FontSizes.lg,
     fontWeight: 'bold',
     color: Colors.textPrimary,
-    marginBottom: Spacing.md,
+  },
+  closeText: {
+    color: Colors.primaryGreen,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   pickerContainer: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   label: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     color: Colors.textSecondary,
     marginBottom: Spacing.xs,
   },
@@ -173,7 +205,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     paddingHorizontal: Spacing.md,
-    minHeight: 50,
+    minHeight: 40,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -223,22 +255,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inputGroup: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   input: {
     backgroundColor: Colors.background,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    minHeight: 40,
     color: Colors.textPrimary,
     fontSize: FontSizes.md,
   },
   button: {
     backgroundColor: Colors.primaryGreen,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    paddingVertical: Spacing.sm,
+    minHeight: 40,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.xs,
   },
   buttonText: {
     color: Colors.textPrimary,
