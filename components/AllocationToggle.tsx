@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors, FontSizes, BorderRadius } from '../constants/theme';
+import { useAccent, useOnAccent } from '../contexts/ThemeContext';
 
 export type AllocationType = 'percentage' | 'dollar';
 
@@ -10,25 +11,27 @@ interface AllocationToggleProps {
 }
 
 export const AllocationToggle = ({ value, onChange }: AllocationToggleProps) => {
+  const accent = useAccent();
+  const onAccent = useOnAccent();
   return (
     <View style={styles.track}>
       <TouchableOpacity
-        style={[styles.option, value === 'percentage' && styles.optionActive]}
+        style={[styles.option, value === 'percentage' && [styles.optionActive, { backgroundColor: accent }]]}
         onPress={() => onChange('percentage')}
         accessibilityRole="button"
         accessibilityState={{ selected: value === 'percentage' }}
         accessibilityLabel="Percent"
       >
-        <Text style={[styles.label, value === 'percentage' && styles.labelActive]}>%</Text>
+        <Text style={[styles.label, value === 'percentage' && [styles.labelActive, { color: onAccent }]]}>%</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.option, value === 'dollar' && styles.optionActive]}
+        style={[styles.option, value === 'dollar' && [styles.optionActive, { backgroundColor: accent }]]}
         onPress={() => onChange('dollar')}
         accessibilityRole="button"
         accessibilityState={{ selected: value === 'dollar' }}
         accessibilityLabel="Dollars"
       >
-        <Text style={[styles.label, value === 'dollar' && styles.labelActive]}>$</Text>
+        <Text style={[styles.label, value === 'dollar' && [styles.labelActive, { color: onAccent }]]}>$</Text>
       </TouchableOpacity>
     </View>
   );

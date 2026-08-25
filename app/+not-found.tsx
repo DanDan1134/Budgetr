@@ -1,16 +1,19 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
+import { useAccent, useOnAccent } from '../contexts/ThemeContext';
 
 export default function NotFoundScreen() {
   const router = useRouter();
+  const accent = useAccent();
+  const onAccent = useOnAccent();
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>404</Text>
       <Text style={styles.subtitle}>Page not found</Text>
-      <TouchableOpacity style={styles.button} onPress={() => router.replace('/')}>
-        <Text style={styles.buttonText}>Go Home</Text>
+      <TouchableOpacity style={[styles.button, { backgroundColor: accent }]} onPress={() => router.replace('/')}>
+        <Text style={[styles.buttonText, { color: onAccent }]}>Go Home</Text>
       </TouchableOpacity>
     </View>
   );

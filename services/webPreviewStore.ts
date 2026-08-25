@@ -389,6 +389,28 @@ export const addPreviewCategory = (
   ];
 };
 
+export const updatePreviewCategory = (
+  id: number,
+  budgetTotal: number,
+  category: PreviewCategoryInput
+): void => {
+  previewCategories = previewCategories.map((item) =>
+    item.id === id
+      ? {
+          ...item,
+          name: category.name,
+          allocation_type: category.allocation_type,
+          allocation_value: category.allocation_value,
+          allocated_amount: calculateAllocatedAmount(
+            budgetTotal,
+            category.allocation_type,
+            category.allocation_value
+          ),
+        }
+      : item
+  );
+};
+
 export const removePreviewCategory = (id: number): void => {
   previewCategories = previewCategories.filter((category) => category.id !== id);
   previewSpendings = previewSpendings.filter((spending) => spending.category_id !== id);

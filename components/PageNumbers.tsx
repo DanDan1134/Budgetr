@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
+import { useAccent, useOnAccent } from '../contexts/ThemeContext';
 
 interface PageNumbersProps {
   page: number;
@@ -9,6 +10,8 @@ interface PageNumbersProps {
 }
 
 export const PageNumbers: React.FC<PageNumbersProps> = ({ page, pageCount, onChange }) => {
+  const accent = useAccent();
+  const onAccent = useOnAccent();
   if (pageCount <= 1) {
     return null;
   }
@@ -22,13 +25,13 @@ export const PageNumbers: React.FC<PageNumbersProps> = ({ page, pageCount, onCha
         return (
           <TouchableOpacity
             key={pageNumber}
-            style={[styles.page, active && styles.pageActive]}
+            style={[styles.page, active && [styles.pageActive, { backgroundColor: accent, borderColor: accent }]]}
             onPress={() => onChange(pageNumber)}
             accessibilityRole="button"
             accessibilityLabel={`Page ${pageNumber}`}
             accessibilityState={{ selected: active }}
           >
-            <Text style={[styles.pageText, active && styles.pageTextActive]}>{pageNumber}</Text>
+            <Text style={[styles.pageText, active && [styles.pageTextActive, { color: onAccent }]]}>{pageNumber}</Text>
           </TouchableOpacity>
         );
       })}

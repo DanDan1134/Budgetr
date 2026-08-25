@@ -6,6 +6,7 @@ import { Spending } from '../services/spendingService';
 import { Category } from '../services/categoryService';
 import { PageNumbers } from './PageNumbers';
 import { SPENDINGS_PAGE_SIZE } from '../utils/monthlyHistory';
+import { useAccent, useOnAccent } from '../contexts/ThemeContext';
 
 const TrashIcon = () => (
   <View style={styles.trash}>
@@ -31,6 +32,8 @@ export const SpendingList: React.FC<SpendingListProps> = ({
   onDeleteSpending,
   onEditSpending,
 }) => {
+  const accent = useAccent();
+  const onAccent = useOnAccent();
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'all'>('all');
   const [page, setPage] = useState(1);
 
@@ -100,7 +103,7 @@ export const SpendingList: React.FC<SpendingListProps> = ({
           <View style={styles.itemContent}>
             <View style={styles.itemHeader}>
               <Text style={styles.categoryName}>{getCategoryName(item.category_id)}</Text>
-              <Text style={styles.amount}>${item.amount.toFixed(2)}</Text>
+              <Text style={[styles.amount, { color: accent }]}>${item.amount.toFixed(2)}</Text>
             </View>
             {item.description && (
               <Text style={styles.description}>{item.description}</Text>
@@ -127,13 +130,16 @@ export const SpendingList: React.FC<SpendingListProps> = ({
             style={styles.chipScroll}
           >
             <TouchableOpacity
-              style={[styles.chip, selectedCategoryId === 'all' && styles.chipActive]}
+              style={[
+                styles.chip,
+                selectedCategoryId === 'all' && [styles.chipActive, { backgroundColor: accent, borderColor: accent }],
+              ]}
               onPress={() => setSelectedCategoryId('all')}
               accessibilityRole="button"
               accessibilityState={{ selected: selectedCategoryId === 'all' }}
               accessibilityLabel="All categories"
             >
-              <Text style={[styles.chipText, selectedCategoryId === 'all' && styles.chipTextActive]}>
+              <Text style={[styles.chipText, selectedCategoryId === 'all' && [styles.chipTextActive, { color: onAccent }]]}>
                 All
               </Text>
             </TouchableOpacity>
@@ -142,13 +148,13 @@ export const SpendingList: React.FC<SpendingListProps> = ({
               return (
                 <TouchableOpacity
                   key={category.id}
-                  style={[styles.chip, active && styles.chipActive]}
+                  style={[styles.chip, active && [styles.chipActive, { backgroundColor: accent, borderColor: accent }]]}
                   onPress={() => setSelectedCategoryId(category.id)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                   accessibilityLabel={category.name}
                 >
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                  <Text style={[styles.chipText, active && [styles.chipTextActive, { color: onAccent }]]}>
                     {category.name}
                   </Text>
                 </TouchableOpacity>

@@ -29,6 +29,7 @@ import {
 import {
   getCategories,
   createCategory,
+  updateCategory,
   deleteCategory,
   Category,
   CategoryInput,
@@ -46,9 +47,12 @@ import {
   calculateRemainingBudget,
 } from "../utils/calculations";
 import { currentMonthKey, isInMonth } from "../utils/monthlyHistory";
+import { useAccent, useOnAccent } from "../contexts/ThemeContext";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const accent = useAccent();
+  const onAccent = useOnAccent();
   const params = useLocalSearchParams<{ period?: string }>();
   const [budget, setBudget] = useState<Budget | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -140,6 +144,20 @@ export default function HomeScreen() {
     }
   };
 
+  const handleUpdateCategory = async (id: number, input: CategoryInput) => {
+    if (!budget) {
+      return;
+    }
+
+    try {
+      await updateCategory(id, budget.total_amount, input);
+      await loadData();
+    } catch (error) {
+      console.error("Error updating category:", error);
+      Alert.alert("Error", "Failed to update category");
+    }
+  };
+
   const handleDeleteCategory = async (id: number) => {
     try {
       await deleteCategory(id);
@@ -194,7 +212,7 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primaryGreen}
+            tintColor={accent}
           />
         }
       >
@@ -211,6 +229,7 @@ export default function HomeScreen() {
           spendings={monthSpendings}
           budgetTotal={budget.total_amount}
           onAddCategory={handleAddCategory}
+          onUpdateCategory={handleUpdateCategory}
           onDeleteCategory={handleDeleteCategory}
         />
 
@@ -224,7 +243,7 @@ export default function HomeScreen() {
 
       {categories.length > 0 && (
         <TouchableOpacity
-          style={styles.playButton}
+          style={[styles.playButton, { backgroundColor: accent }]}
           onPress={() => {
             setEditingSpending(null);
             setFormOpen(true);
@@ -234,8 +253,8 @@ export default function HomeScreen() {
           activeOpacity={0.85}
         >
           <View style={styles.plusIcon}>
-            <View style={styles.plusBarHorizontal} />
-            <View style={styles.plusBarVertical} />
+            <View style={[styles.plusBarHorizontal, { backgroundColor: onAccent }]} />
+            <View style={[styles.plusBarVertical, { backgroundColor: onAccent }]} />
           </View>
         </TouchableOpacity>
       )}

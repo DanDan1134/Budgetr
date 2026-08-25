@@ -16,6 +16,7 @@ import { createBudget } from '../../services/budgetService';
 import { startCurrentPeriod } from '../../services/historyService';
 import { createCategories, CategoryInput } from '../../services/categoryService';
 import { calculateAllocatedAmount } from '../../utils/calculations';
+import { useAccent, useOnAccent } from '../../contexts/ThemeContext';
 
 interface CategoryRow {
   id: string;
@@ -25,6 +26,8 @@ interface CategoryRow {
 }
 
 export default function CategoriesScreen() {
+  const accent = useAccent();
+  const onAccent = useOnAccent();
   const router = useRouter();
   const params = useLocalSearchParams();
   const parsedBudget = parseFloat(params.budgetAmount as string);
@@ -175,7 +178,7 @@ export default function CategoriesScreen() {
             </View>
 
             {category.allocationValue && parseFloat(category.allocationValue) > 0 && (
-              <Text style={styles.allocatedText}>
+              <Text style={[styles.allocatedText, { color: accent }]}>
                 Allocated: $
                 {calculateAllocatedAmount(
                   budgetAmount,
@@ -187,8 +190,8 @@ export default function CategoriesScreen() {
           </View>
         ))}
 
-        <TouchableOpacity style={styles.addButton} onPress={addCategory}>
-          <Text style={styles.addButtonText}>+ Add Category</Text>
+        <TouchableOpacity style={[styles.addButton, { borderColor: accent }]} onPress={addCategory}>
+          <Text style={[styles.addButtonText, { color: accent }]}>+ Add Category</Text>
         </TouchableOpacity>
 
         <View style={styles.summaryCard}>
@@ -205,7 +208,7 @@ export default function CategoriesScreen() {
             <Text
               style={[
                 styles.remainingValue,
-                remaining < 0 && { color: Colors.error },
+                { color: remaining < 0 ? Colors.error : accent },
               ]}
             >
               ${remaining.toFixed(2)}
@@ -213,8 +216,8 @@ export default function CategoriesScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
-          <Text style={styles.finishButtonText}>Finish Setup</Text>
+        <TouchableOpacity style={[styles.finishButton, { backgroundColor: accent }]} onPress={handleFinish}>
+          <Text style={[styles.finishButtonText, { color: onAccent }]}>Finish Setup</Text>
         </TouchableOpacity>
     </ScreenScroll>
   );

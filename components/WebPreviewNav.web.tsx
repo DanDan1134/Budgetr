@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { Colors, FontSizes, Spacing } from '../constants/theme';
+import { useAccent, useOnAccent } from '../contexts/ThemeContext';
 import {
   clearPreviewBudget,
   loadSampleHistoryData,
@@ -19,6 +20,8 @@ const pages = [
 export const WebPreviewNav = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const accent = useAccent();
+  const onAccent = useOnAccent();
 
   const goTo = (key: (typeof pages)[number]['key']) => {
     if (key === 'home') {
@@ -66,10 +69,10 @@ export const WebPreviewNav = () => {
         return (
           <Pressable
             key={page.key}
-            style={[styles.button, active && styles.buttonActive]}
+            style={[styles.button, active && [styles.buttonActive, { backgroundColor: accent, borderColor: accent }]]}
             onPress={() => goTo(page.key)}
           >
-            <Text style={[styles.buttonText, active && styles.buttonTextActive]}>
+            <Text style={[styles.buttonText, active && [styles.buttonTextActive, { color: onAccent }]]}>
               {page.label}
             </Text>
           </Pressable>

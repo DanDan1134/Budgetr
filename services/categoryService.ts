@@ -46,6 +46,26 @@ export const createCategory = async (
   await createCategories(budgetId, budgetTotal, [category]);
 };
 
+export const updateCategory = async (
+  id: number,
+  budgetTotal: number,
+  category: CategoryInput
+): Promise<void> => {
+  const db = getDatabase();
+  const allocatedAmount = calculateAllocatedAmount(
+    budgetTotal,
+    category.allocation_type,
+    category.allocation_value
+  );
+
+  await db.runAsync(
+    `UPDATE categories
+     SET name = ?, allocation_type = ?, allocation_value = ?, allocated_amount = ?
+     WHERE id = ?`,
+    [category.name, category.allocation_type, category.allocation_value, allocatedAmount, id]
+  );
+};
+
 export const getCategories = async (): Promise<Category[]> => {
   const db = getDatabase();
   

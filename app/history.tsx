@@ -7,12 +7,15 @@ import { PageNumbers } from '../components/PageNumbers';
 import { getCurrentBudget } from '../services/budgetService';
 import { getMonthlyHistory, type MonthSummary } from '../services/historyService';
 import { SPENDINGS_PAGE_SIZE } from '../utils/monthlyHistory';
+import { useAccent, useOnAccent } from '../contexts/ThemeContext';
 
 const formatMoney = (value: number) => `$${value.toFixed(2)}`;
 
 const formatDate = (value: string) => new Date(value).toLocaleDateString();
 
 export default function HistoryScreen() {
+  const accent = useAccent();
+  const onAccent = useOnAccent();
   const [months, setMonths] = useState<MonthSummary[]>([]);
   const [openMonthKey, setOpenMonthKey] = useState<string | null>(null);
   const [budgetTotal, setBudgetTotal] = useState(0);
@@ -81,7 +84,7 @@ export default function HistoryScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primaryGreen} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accent} />
       }
     >
       <Text style={styles.title}>History</Text>
@@ -120,7 +123,7 @@ export default function HistoryScreen() {
                   <StatRow
                     label="Remaining"
                     value={formatMoney(remaining)}
-                    valueColor={remaining < 0 ? Colors.error : Colors.primaryGreen}
+                    valueColor={remaining < 0 ? Colors.error : accent}
                   />
                   <StatRow label="Spendings" value={`${month.spendingCount}`} />
                   <StatRow
@@ -149,7 +152,7 @@ export default function HistoryScreen() {
                           return (
                             <TouchableOpacity
                               key={name}
-                              style={[styles.chip, active && styles.chipActive]}
+                              style={[styles.chip, active && [styles.chipActive, { backgroundColor: accent, borderColor: accent }]]}
                               onPress={() => {
                                 setCategoryFilter(name);
                                 setSpendingPage(1);
@@ -157,7 +160,7 @@ export default function HistoryScreen() {
                               accessibilityRole="button"
                               accessibilityState={{ selected: active }}
                             >
-                              <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                              <Text style={[styles.chipText, active && [styles.chipTextActive, { color: onAccent }]]}>
                                 {name}
                               </Text>
                             </TouchableOpacity>
@@ -173,7 +176,7 @@ export default function HistoryScreen() {
                             <View key={spending.key} style={styles.itemCard}>
                               <View style={styles.itemHeader}>
                                 <Text style={styles.itemTitle}>{spending.categoryName}</Text>
-                                <Text style={[styles.itemValue, { color: Colors.primaryGreen }]}>
+                                <Text style={[styles.itemValue, { color: accent }]}>
                                   {formatMoney(spending.amount)}
                                 </Text>
                               </View>

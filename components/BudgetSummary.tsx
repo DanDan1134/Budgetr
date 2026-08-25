@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Alert, TouchableOpacity } from 'react-native';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
+import { useAccent } from '../contexts/ThemeContext';
 
 interface BudgetSummaryProps {
   totalBudget: number;
@@ -18,6 +19,7 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({
   remaining,
   onUpdateBudget,
 }) => {
+  const accent = useAccent();
   const inputRef = useRef<TextInput>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [budgetText, setBudgetText] = useState(totalBudget.toFixed(2));
@@ -77,7 +79,7 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({
               name="pen-to-square"
               size={18}
               solid
-              color={isEditing ? Colors.primaryGreen : Colors.textSecondary}
+              color={isEditing ? accent : Colors.textSecondary}
             />
           </TouchableOpacity>
         ) : null}
@@ -90,7 +92,7 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({
             <Text style={styles.value}>$</Text>
             <TextInput
               ref={inputRef}
-              style={styles.budgetInput}
+              style={[styles.budgetInput, { borderBottomColor: accent }]}
               value={budgetText}
               onChangeText={setBudgetText}
               onBlur={saveBudget}
@@ -120,7 +122,7 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({
 
       <View style={[styles.row, styles.remainingRow]}>
         <Text style={styles.remainingLabel}>Remaining:</Text>
-        <Text style={[styles.remainingValue, remaining < 0 && { color: Colors.error }]}>
+        <Text style={[styles.remainingValue, { color: remaining < 0 ? Colors.error : accent }]}>
           ${remaining.toFixed(2)}
         </Text>
       </View>

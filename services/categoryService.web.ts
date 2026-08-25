@@ -4,6 +4,7 @@ import {
   previewCategories,
   removePreviewCategory,
   setPreviewCategories,
+  updatePreviewCategory,
 } from './webPreviewStore';
 
 export interface Category {
@@ -35,6 +36,14 @@ export const createCategory = async (
   category: CategoryInput
 ): Promise<void> => {
   addPreviewCategory(budgetId, budgetTotal, category);
+};
+
+export const updateCategory = async (
+  id: number,
+  budgetTotal: number,
+  category: CategoryInput
+): Promise<void> => {
+  updatePreviewCategory(id, budgetTotal, category);
 };
 
 export const getCategories = async (): Promise<Category[]> => {

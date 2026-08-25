@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../../constants/theme';
+import { useAccent, useOnAccent } from '../../contexts/ThemeContext';
 import { ScreenScroll } from '../../components/ScreenScroll';
 
 export default function BudgetScreen() {
   const router = useRouter();
+  const accent = useAccent();
+  const onAccent = useOnAccent();
   const [budgetAmount, setBudgetAmount] = useState('');
 
   const handleContinue = () => {
@@ -27,8 +30,8 @@ export default function BudgetScreen() {
         <Text style={styles.title}>What's this month's budget?</Text>
         <Text style={styles.subtitle}>Enter the total amount you want to budget</Text>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.dollarSign}>$</Text>
+        <View style={[styles.inputContainer, { borderColor: accent }]}>
+          <Text style={[styles.dollarSign, { color: accent }]}>$</Text>
           <TextInput
             style={styles.input}
             value={budgetAmount}
@@ -41,11 +44,11 @@ export default function BudgetScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.button, !budgetAmount && styles.buttonDisabled]}
+          style={[styles.button, { backgroundColor: accent }, !budgetAmount && styles.buttonDisabled]}
           onPress={handleContinue}
           disabled={!budgetAmount}
         >
-          <Text style={styles.buttonText}>Continue</Text>
+          <Text style={[styles.buttonText, { color: onAccent }]}>Continue</Text>
         </TouchableOpacity>
       </View>
     </ScreenScroll>

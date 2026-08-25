@@ -12,10 +12,20 @@ import {
 import { Colors, FontSizes } from '../constants/theme';
 import { WebPreviewNav } from '../components/WebPreviewNav';
 import { initDatabase, resetDatabase } from '../services/database';
+import { ThemeProvider, useAccent } from '../contexts/ThemeContext';
 
 export default function Layout() {
+  return (
+    <ThemeProvider>
+      <AppShell />
+    </ThemeProvider>
+  );
+}
+
+function AppShell() {
   const router = useRouter();
   const pathname = usePathname();
+  const accent = useAccent();
   const [dbReady, setDbReady] = useState(false);
 
   useEffect(() => {
@@ -74,7 +84,7 @@ export default function Layout() {
   if (!dbReady) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color={Colors.primaryGreen} />
+        <ActivityIndicator size="large" color={accent} />
       </View>
     );
   }
@@ -94,7 +104,7 @@ export default function Layout() {
         drawerStyle: {
           backgroundColor: Colors.background,
         },
-        drawerActiveTintColor: Colors.primaryGreen,
+        drawerActiveTintColor: accent,
         drawerInactiveTintColor: Colors.textSecondary,
         drawerLabelStyle: styles.drawerLabel,
         swipeEnabled: !isSetupRoute,
@@ -113,6 +123,14 @@ export default function Layout() {
         options={{
           drawerLabel: 'History',
           title: 'History',
+          headerShown: true,
+        }}
+      />
+      <Drawer.Screen
+        name="theme"
+        options={{
+          drawerLabel: 'Theme',
+          title: 'Theme',
           headerShown: true,
         }}
       />

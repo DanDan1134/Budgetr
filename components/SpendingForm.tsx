@@ -12,6 +12,7 @@ import {
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 import { Category } from '../services/categoryService';
 import { Spending } from '../services/spendingService';
+import { useAccent, useOnAccent } from '../contexts/ThemeContext';
 
 interface SpendingFormProps {
   categories: Category[];
@@ -26,6 +27,8 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({
   onSaveSpending,
   onClose,
 }) => {
+  const accent = useAccent();
+  const onAccent = useOnAccent();
   const [selectedCategory, setSelectedCategory] = useState<number | null>(
     initialSpending?.category_id ?? (categories.length > 0 ? categories[0].id : null)
   );
@@ -86,7 +89,7 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({
         <Text style={styles.title}>Spendings</Text>
         {onClose ? (
           <TouchableOpacity onPress={onClose} hitSlop={8}>
-            <Text style={styles.closeText}>Done</Text>
+            <Text style={[styles.closeText, { color: accent }]}>Done</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -126,7 +129,7 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({
                   <Text
                     style={[
                       styles.modalOptionText,
-                      isSelected && styles.modalOptionTextSelected,
+                      isSelected && [styles.modalOptionTextSelected, { color: accent }],
                     ]}
                   >
                     {category.name}
@@ -162,8 +165,8 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({
         />
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleAdd}>
-        <Text style={styles.buttonText}>{isEditing ? 'Save spending' : 'Add spending'}</Text>
+      <TouchableOpacity style={[styles.button, { backgroundColor: accent }]} onPress={handleAdd}>
+        <Text style={[styles.buttonText, { color: onAccent }]}>{isEditing ? 'Save spending' : 'Add spending'}</Text>
       </TouchableOpacity>
     </View>
   );
