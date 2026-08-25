@@ -33,6 +33,19 @@ export const getSpendings = async (): Promise<Spending[]> => {
   return result;
 };
 
+export const updateSpending = async (
+  id: number,
+  categoryId: number,
+  amount: number,
+  description?: string
+): Promise<void> => {
+  const db = getDatabase();
+  await db.runAsync(
+    'UPDATE spendings SET category_id = ?, description = ?, amount = ? WHERE id = ?',
+    [categoryId, description || null, amount, id]
+  );
+};
+
 export const deleteSpending = async (id: number): Promise<void> => {
   const db = getDatabase();
   await db.runAsync('DELETE FROM spendings WHERE id = ?', [id]);

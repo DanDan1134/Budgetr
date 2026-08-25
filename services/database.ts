@@ -122,6 +122,23 @@ export const getDatabase = (): SQLite.SQLiteDatabase => {
   return db;
 };
 
+export const resetDatabase = async (): Promise<void> => {
+  const database = getDatabase();
+  await database.execAsync(`
+    DELETE FROM period_spendings;
+    DELETE FROM period_categories;
+    DELETE FROM periods;
+    DELETE FROM spendings;
+    DELETE FROM categories;
+    DELETE FROM budget;
+    DELETE FROM current_period;
+  `);
+  await database.runAsync(
+    'INSERT INTO current_period (id, started_at) VALUES (1, ?)',
+    [new Date().toISOString()]
+  );
+};
+
 export const closeDatabase = async (): Promise<void> => {
   if (db) {
     await db.closeAsync();

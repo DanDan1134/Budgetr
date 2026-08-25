@@ -68,6 +68,12 @@ export let previewCategories: PreviewCategory[] = [];
 export let previewSpendings: PreviewSpending[] = [];
 export let previewHistory: PreviewHistoryPeriod[] = [];
 
+const daysAgo = (days: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString();
+};
+
 export const loadSamplePreviewData = (): void => {
   previewBudget = {
     id: 1,
@@ -122,14 +128,29 @@ export const loadSamplePreviewData = (): void => {
       amount: 18,
       created_at: new Date().toISOString(),
     },
+    {
+      id: 4,
+      category_id: 1,
+      description: 'Last month groceries',
+      amount: 64.2,
+      created_at: daysAgo(32),
+    },
+    {
+      id: 5,
+      category_id: 2,
+      description: 'Last month gas',
+      amount: 38,
+      created_at: daysAgo(36),
+    },
+    ...Array.from({ length: 16 }, (_, index) => ({
+      id: 6 + index,
+      category_id: (index % 3) + 1,
+      description: `Sample spending ${index + 1}`,
+      amount: 12 + index,
+      created_at: new Date().toISOString(),
+    })),
   ];
-  nextId = 10;
-};
-
-const daysAgo = (days: number) => {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return date.toISOString();
+  nextId = 30;
 };
 
 export const loadSampleHistoryData = (): void => {
@@ -396,10 +417,37 @@ export const addPreviewSpending = (
   return id;
 };
 
+export const updatePreviewSpending = (
+  id: number,
+  categoryId: number,
+  amount: number,
+  description?: string
+): void => {
+  previewSpendings = previewSpendings.map((spending) =>
+    spending.id === id
+      ? {
+          ...spending,
+          category_id: categoryId,
+          amount,
+          description: description || null,
+        }
+      : spending
+  );
+};
+
 export const removePreviewSpending = (id: number): void => {
   previewSpendings = previewSpendings.filter((spending) => spending.id !== id);
 };
 
 export const clearPreviewSpendings = (): void => {
   previewSpendings = [];
+};
+
+export const resetPreviewStore = (): void => {
+  nextId = 10;
+  previewBudget = null;
+  previewCategories = [];
+  previewSpendings = [];
+  previewHistory = [];
+  startPreviewPeriod();
 };

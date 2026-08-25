@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Alert } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TextInput, Alert, TouchableOpacity } from 'react-native';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 
 interface BudgetSummaryProps {
@@ -17,14 +18,23 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({
   remaining,
   onUpdateBudget,
 }) => {
+  const inputRef = useRef<TextInput>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [budgetText, setBudgetText] = useState(totalBudget.toFixed(2));
 
   useEffect(() => {
     setBudgetText(totalBudget.toFixed(2));
   }, [totalBudget]);
 
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+    }
+  }, [isEditing]);
+
   const saveBudget = async () => {
     if (!onUpdateBudget) {
+      setIsEditing(false);
       return;
     }
 
@@ -35,24 +45,51 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({
       return;
     }
 
-    if (amount === totalBudget) {
+    if (amount !== totalBudget) {
+      await onUpdateBudget(amount);
+    } else {
       setBudgetText(totalBudget.toFixed(2));
-      return;
     }
 
-    await onUpdateBudget(amount);
+    setIsEditing(false);
+  };
+
+  const handleEditPress = () => {
+    if (isEditing) {
+      return;
+    }
+    setBudgetText(totalBudget.toFixed(2));
+    setIsEditing(true);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Budget Overview</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Budget Overview</Text>
+        {onUpdateBudget ? (
+          <TouchableOpacity
+            onPress={handleEditPress}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Edit total budget"
+          >
+            <FontAwesome6
+              name="pen-to-square"
+              size={18}
+              solid
+              color={isEditing ? Colors.primaryGreen : Colors.textSecondary}
+            />
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
       <View style={styles.row}>
         <Text style={styles.label}>Total Budget:</Text>
-        {onUpdateBudget ? (
+        {isEditing ? (
           <View style={styles.budgetInputRow}>
             <Text style={styles.value}>$</Text>
             <TextInput
+              ref={inputRef}
               style={styles.budgetInput}
               value={budgetText}
               onChangeText={setBudgetText}
@@ -98,11 +135,16 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     marginBottom: Spacing.md,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
   title: {
     fontSize: FontSizes.lg,
     fontWeight: 'bold',
     color: Colors.textPrimary,
-    marginBottom: Spacing.md,
   },
   row: {
     flexDirection: 'row',

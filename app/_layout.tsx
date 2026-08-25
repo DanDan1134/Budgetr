@@ -11,10 +11,7 @@ import {
 } from '@react-navigation/drawer';
 import { Colors, FontSizes } from '../constants/theme';
 import { WebPreviewNav } from '../components/WebPreviewNav';
-import { initDatabase } from '../services/database';
-import { deleteBudget } from '../services/budgetService';
-import { deleteAllCategories } from '../services/categoryService';
-import { closeCurrentPeriod } from '../services/historyService';
+import { initDatabase, resetDatabase } from '../services/database';
 
 export default function Layout() {
   const router = useRouter();
@@ -30,50 +27,22 @@ export default function Layout() {
       });
   }, []);
 
-  const handleSetup = () => {
+  const handleResetAll = () => {
     Alert.alert(
-      'Reset Budget',
-      'This will delete your current budget and start over. Are you sure?',
+      'Reset Everything',
+      'This will permanently delete your budget, categories, spendings, and history. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Continue',
+          text: 'Reset All',
           style: 'destructive',
           onPress: async () => {
             try {
-              await closeCurrentPeriod();
-              await deleteBudget();
-              await deleteAllCategories();
+              await resetDatabase();
               router.replace('/setup/budget');
             } catch (error) {
-              console.error('Error resetting budget:', error);
-              Alert.alert('Error', 'Failed to reset budget');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleNewPeriod = () => {
-    Alert.alert(
-      'Start New Period',
-      'This will save this period to History, then reset spendings. Budget and categories stay. Continue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          onPress: async () => {
-            try {
-              await closeCurrentPeriod();
-              router.replace({
-                pathname: '/',
-                params: { period: Date.now().toString() },
-              });
-              Alert.alert('Success', 'Period saved to History. Spendings were reset.');
-            } catch (error) {
-              console.error('Error starting new period:', error);
-              Alert.alert('Error', 'Failed to start new period');
+              console.error('Error resetting database:', error);
+              Alert.alert('Error', 'Failed to reset everything');
             }
           },
         },
@@ -89,36 +58,16 @@ export default function Layout() {
       {!isSetupRoute && (
         <>
           <DrawerItem
-            label="Setup"
+            label="Reset All"
             onPress={() => {
               props.navigation.closeDrawer();
-              handleSetup();
-            }}
-            inactiveTintColor={Colors.textSecondary}
-            labelStyle={styles.drawerLabel}
-          />
-          <DrawerItem
-            label="New Period"
-            onPress={() => {
-              props.navigation.closeDrawer();
-              handleNewPeriod();
+              handleResetAll();
             }}
             inactiveTintColor={Colors.textSecondary}
             labelStyle={styles.drawerLabel}
           />
         </>
       )}
-      <DrawerItem
-        label="History"
-        focused={pathname === '/history'}
-        onPress={() => {
-          props.navigation.closeDrawer();
-          router.push('/history');
-        }}
-        activeTintColor={Colors.primaryGreen}
-        inactiveTintColor={Colors.textSecondary}
-        labelStyle={styles.drawerLabel}
-      />
     </DrawerContentScrollView>
   );
 
@@ -162,9 +111,8 @@ export default function Layout() {
       <Drawer.Screen
         name="history"
         options={{
-          drawerLabel: () => null,
+          drawerLabel: 'History',
           title: 'History',
-          drawerItemStyle: { display: 'none' },
           headerShown: true,
         }}
       />

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from "react";
 import {
   StyleSheet,
   RefreshControl,
@@ -7,31 +7,45 @@ import {
   TouchableOpacity,
   Modal,
   Pressable,
-  ScrollView,
-} from 'react-native';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { Colors, Spacing, BorderRadius } from '../constants/theme';
-import { ScreenScroll } from '../components/ScreenScroll';
-import { BudgetSummary } from '../components/BudgetSummary';
-import { CategoryList } from '../components/CategoryList';
-import { SpendingForm } from '../components/SpendingForm';
-import { SpendingList } from '../components/SpendingList';
-import { initDatabase } from '../services/database';
-import { getCurrentBudget, updateBudget, Budget } from '../services/budgetService';
+  Platform,
+} from "react-native";
+import {
+  KeyboardProvider,
+  KeyboardStickyView,
+} from "react-native-keyboard-controller";
+import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { Colors, Spacing, BorderRadius } from "../constants/theme";
+import { ScreenScroll } from "../components/ScreenScroll";
+import { BudgetSummary } from "../components/BudgetSummary";
+import { CategoryList } from "../components/CategoryList";
+import { SpendingForm } from "../components/SpendingForm";
+import { SpendingList } from "../components/SpendingList";
+import { initDatabase } from "../services/database";
+import {
+  getCurrentBudget,
+  updateBudget,
+  Budget,
+} from "../services/budgetService";
 import {
   getCategories,
   createCategory,
   deleteCategory,
   Category,
   CategoryInput,
-} from '../services/categoryService';
-import { getSpendings, createSpending, deleteSpending, Spending } from '../services/spendingService';
+} from "../services/categoryService";
+import {
+  getSpendings,
+  createSpending,
+  updateSpending,
+  deleteSpending,
+  Spending,
+} from "../services/spendingService";
 import {
   calculateTotalSpent,
   calculateTotalAllocated,
   calculateRemainingBudget,
-} from '../utils/calculations';
+} from "../utils/calculations";
+import { currentMonthKey, isInMonth } from "../utils/monthlyHistory";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -42,6 +56,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [editingSpending, setEditingSpending] = useState<Spending | null>(null);
 
   const loadData = async () => {
     try {
@@ -49,7 +64,7 @@ export default function HomeScreen() {
       const currentBudget = await getCurrentBudget();
 
       if (!currentBudget) {
-        router.replace('/setup/budget');
+        router.replace("/setup/budget");
         return;
       }
 
@@ -59,8 +74,8 @@ export default function HomeScreen() {
       const spends = await getSpendings();
       setSpendings(spends);
     } catch (error) {
-      console.error('Error loading data:', error);
-      Alert.alert('Error', 'Failed to load data');
+      console.error("Error loading data:", error);
+      Alert.alert("Error", "Failed to load data");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -70,7 +85,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [params.period])
+    }, [params.period]),
   );
 
   const onRefresh = () => {
@@ -78,18 +93,37 @@ export default function HomeScreen() {
     loadData();
   };
 
-  const handleAddSpending = async (
+  const closeForm = () => {
+    setFormOpen(false);
+    setEditingSpending(null);
+  };
+
+  const handleSaveSpending = async (
     categoryId: number,
     amount: number,
-    description?: string
+    description?: string,
   ) => {
     try {
-      await createSpending(categoryId, amount, description);
+      if (editingSpending) {
+        await updateSpending(
+          editingSpending.id,
+          categoryId,
+          amount,
+          description,
+        );
+      } else {
+        await createSpending(categoryId, amount, description);
+      }
       await loadData();
     } catch (error) {
-      console.error('Error adding spending:', error);
-      Alert.alert('Error', 'Failed to add spending');
+      console.error("Error saving spending:", error);
+      Alert.alert("Error", "Failed to save spending");
     }
+  };
+
+  const handleEditSpending = (spending: Spending) => {
+    setEditingSpending(spending);
+    setFormOpen(true);
   };
 
   const handleAddCategory = async (input: CategoryInput) => {
@@ -101,8 +135,8 @@ export default function HomeScreen() {
       await createCategory(budget.id, budget.total_amount, input);
       await loadData();
     } catch (error) {
-      console.error('Error adding category:', error);
-      Alert.alert('Error', 'Failed to add category');
+      console.error("Error adding category:", error);
+      Alert.alert("Error", "Failed to add category");
     }
   };
 
@@ -111,8 +145,8 @@ export default function HomeScreen() {
       await deleteCategory(id);
       await loadData();
     } catch (error) {
-      console.error('Error deleting category:', error);
-      Alert.alert('Error', 'Failed to delete category');
+      console.error("Error deleting category:", error);
+      Alert.alert("Error", "Failed to delete category");
     }
   };
 
@@ -121,8 +155,8 @@ export default function HomeScreen() {
       await deleteSpending(id);
       await loadData();
     } catch (error) {
-      console.error('Error deleting spending:', error);
-      Alert.alert('Error', 'Failed to delete spending');
+      console.error("Error deleting spending:", error);
+      Alert.alert("Error", "Failed to delete spending");
     }
   };
 
@@ -135,8 +169,8 @@ export default function HomeScreen() {
       await updateBudget(budget.id, amount);
       await loadData();
     } catch (error) {
-      console.error('Error updating budget:', error);
-      Alert.alert('Error', 'Failed to update budget');
+      console.error("Error updating budget:", error);
+      Alert.alert("Error", "Failed to update budget");
     }
   };
 
@@ -144,7 +178,10 @@ export default function HomeScreen() {
     return null;
   }
 
-  const totalSpent = calculateTotalSpent(spendings);
+  const monthSpendings = spendings.filter((spending) =>
+    isInMonth(spending.created_at, currentMonthKey()),
+  );
+  const totalSpent = calculateTotalSpent(monthSpendings);
   const totalAllocated = calculateTotalAllocated(categories);
   const remaining = calculateRemainingBudget(budget.total_amount, totalSpent);
 
@@ -171,25 +208,29 @@ export default function HomeScreen() {
 
         <CategoryList
           categories={categories}
-          spendings={spendings}
+          spendings={monthSpendings}
           budgetTotal={budget.total_amount}
           onAddCategory={handleAddCategory}
           onDeleteCategory={handleDeleteCategory}
         />
 
         <SpendingList
-          spendings={spendings}
+          spendings={monthSpendings}
           categories={categories}
           onDeleteSpending={handleDeleteSpending}
+          onEditSpending={handleEditSpending}
         />
       </ScreenScroll>
 
       {categories.length > 0 && (
         <TouchableOpacity
           style={styles.playButton}
-          onPress={() => setFormOpen(true)}
+          onPress={() => {
+            setEditingSpending(null);
+            setFormOpen(true);
+          }}
           accessibilityRole="button"
-          accessibilityLabel="Open quick spending"
+          accessibilityLabel="Open spendings"
           activeOpacity={0.85}
         >
           <View style={styles.plusIcon}>
@@ -203,24 +244,39 @@ export default function HomeScreen() {
         visible={formOpen}
         transparent
         animationType="fade"
-        onRequestClose={() => setFormOpen(false)}
+        onRequestClose={closeForm}
       >
-        <KeyboardAvoidingView behavior="padding" style={styles.modalRoot}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setFormOpen(false)} />
-          <View style={styles.sheet}>
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              bounces={false}
-              showsVerticalScrollIndicator={false}
-            >
-              <SpendingForm
-                categories={categories}
-                onAddSpending={handleAddSpending}
-                onClose={() => setFormOpen(false)}
-              />
-            </ScrollView>
+        <KeyboardProvider>
+          <View style={styles.modalRoot}>
+            <Pressable style={styles.modalBackdrop} onPress={closeForm} />
+            {Platform.OS === "web" ? (
+              <View style={styles.sheet}>
+                <SpendingForm
+                  key={editingSpending?.id ?? "new"}
+                  categories={categories}
+                  initialSpending={editingSpending}
+                  onSaveSpending={handleSaveSpending}
+                  onClose={closeForm}
+                />
+              </View>
+            ) : (
+              <KeyboardStickyView
+                offset={{ closed: 8, opened: 8 }}
+                style={styles.stickySheet}
+              >
+                <View style={styles.sheet}>
+                  <SpendingForm
+                    key={editingSpending?.id ?? "new"}
+                    categories={categories}
+                    initialSpending={editingSpending}
+                    onSaveSpending={handleSaveSpending}
+                    onClose={closeForm}
+                  />
+                </View>
+              </KeyboardStickyView>
+            )}
           </View>
-        </KeyboardAvoidingView>
+        </KeyboardProvider>
       </Modal>
     </View>
   );
@@ -239,31 +295,31 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
   playButton: {
-    position: 'absolute',
-    alignSelf: 'center',
+    position: "absolute",
+    alignSelf: "center",
     bottom: Spacing.lg,
     width: 72,
     height: 72,
     borderRadius: 36,
     backgroundColor: Colors.primaryGreen,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   plusIcon: {
     width: 22,
     height: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   plusBarHorizontal: {
-    position: 'absolute',
+    position: "absolute",
     width: 22,
     height: 3,
     borderRadius: 1.5,
     backgroundColor: Colors.textPrimary,
   },
   plusBarVertical: {
-    position: 'absolute',
+    position: "absolute",
     width: 3,
     height: 22,
     borderRadius: 1.5,
@@ -271,20 +327,26 @@ const styles = StyleSheet.create({
   },
   modalRoot: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: Platform.OS === "web" ? "center" : "flex-end",
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Platform.OS === "web" ? Spacing.lg : 0,
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
+  },
+  stickySheet: {
+    width: "100%",
+    maxWidth: 480,
+    alignSelf: "center",
+    marginBottom: 12,
   },
   sheet: {
-    width: '100%',
+    width: "100%",
     maxWidth: 480,
-    maxHeight: '90%',
-    alignSelf: 'center',
-    overflow: 'hidden',
+    alignSelf: "center",
+    overflow: "hidden",
     borderRadius: BorderRadius.lg,
   },
 });

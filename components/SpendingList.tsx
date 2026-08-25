@@ -4,6 +4,8 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 import { Spending } from '../services/spendingService';
 import { Category } from '../services/categoryService';
+import { PageNumbers } from './PageNumbers';
+import { SPENDINGS_PAGE_SIZE } from '../utils/monthlyHistory';
 
 const TrashIcon = () => (
   <View style={styles.trash}>
@@ -20,14 +22,17 @@ interface SpendingListProps {
   spendings: Spending[];
   categories: Category[];
   onDeleteSpending: (id: number) => void;
+  onEditSpending: (spending: Spending) => void;
 }
 
 export const SpendingList: React.FC<SpendingListProps> = ({
   spendings,
   categories,
   onDeleteSpending,
+  onEditSpending,
 }) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'all'>('all');
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (selectedCategoryId === 'all') {
@@ -39,11 +44,26 @@ export const SpendingList: React.FC<SpendingListProps> = ({
   }, [categories, selectedCategoryId]);
 
   const filteredSpendings = useMemo(() => {
-    if (selectedCategoryId === 'all') {
-      return spendings;
-    }
-    return spendings.filter((spending) => spending.category_id === selectedCategoryId);
+    const items =
+      selectedCategoryId === 'all'
+        ? [...spendings]
+        : spendings.filter((spending) => spending.category_id === selectedCategoryId);
+
+    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    return items;
   }, [spendings, selectedCategoryId]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredSpendings.length / SPENDINGS_PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const pagedSpendings = filteredSpendings.slice(
+    (safePage - 1) * SPENDINGS_PAGE_SIZE,
+    safePage * SPENDINGS_PAGE_SIZE
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedCategoryId, spendings]);
 
   const getCategoryName = (categoryId: number): string => {
     const category = categories.find((c) => c.id === categoryId);
@@ -70,7 +90,13 @@ export const SpendingList: React.FC<SpendingListProps> = ({
         failOffsetY={[-12, 12]}
         renderRightActions={() => renderRightActions(item.id)}
       >
-        <View style={styles.item}>
+        <TouchableOpacity
+          style={styles.item}
+          onPress={() => onEditSpending(item)}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel="Edit spending"
+        >
           <View style={styles.itemContent}>
             <View style={styles.itemHeader}>
               <Text style={styles.categoryName}>{getCategoryName(item.category_id)}</Text>
@@ -83,7 +109,7 @@ export const SpendingList: React.FC<SpendingListProps> = ({
               {new Date(item.created_at).toLocaleDateString()}
             </Text>
           </View>
-        </View>
+        </TouchableOpacity>
       </Swipeable>
     </View>
   );
@@ -92,42 +118,44 @@ export const SpendingList: React.FC<SpendingListProps> = ({
     <View style={styles.container}>
       <Text style={styles.title}>Recent Spendings</Text>
       {categories.length > 0 && (
-        <ScrollView
-          horizontal
-          nestedScrollEnabled
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipRow}
-          style={styles.chipScroll}
-        >
-          <TouchableOpacity
-            style={[styles.chip, selectedCategoryId === 'all' && styles.chipActive]}
-            onPress={() => setSelectedCategoryId('all')}
-            accessibilityRole="button"
-            accessibilityState={{ selected: selectedCategoryId === 'all' }}
-            accessibilityLabel="All categories"
+        <View style={styles.filterRow}>
+          <ScrollView
+            horizontal
+            nestedScrollEnabled
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipRow}
+            style={styles.chipScroll}
           >
-            <Text style={[styles.chipText, selectedCategoryId === 'all' && styles.chipTextActive]}>
-              All
-            </Text>
-          </TouchableOpacity>
-          {categories.map((category) => {
-            const active = selectedCategoryId === category.id;
-            return (
-              <TouchableOpacity
-                key={category.id}
-                style={[styles.chip, active && styles.chipActive]}
-                onPress={() => setSelectedCategoryId(category.id)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={category.name}
-              >
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                  {category.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+            <TouchableOpacity
+              style={[styles.chip, selectedCategoryId === 'all' && styles.chipActive]}
+              onPress={() => setSelectedCategoryId('all')}
+              accessibilityRole="button"
+              accessibilityState={{ selected: selectedCategoryId === 'all' }}
+              accessibilityLabel="All categories"
+            >
+              <Text style={[styles.chipText, selectedCategoryId === 'all' && styles.chipTextActive]}>
+                All
+              </Text>
+            </TouchableOpacity>
+            {categories.map((category) => {
+              const active = selectedCategoryId === category.id;
+              return (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[styles.chip, active && styles.chipActive]}
+                  onPress={() => setSelectedCategoryId(category.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={category.name}
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    {category.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
       )}
       {filteredSpendings.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -136,12 +164,15 @@ export const SpendingList: React.FC<SpendingListProps> = ({
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={filteredSpendings}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
-          scrollEnabled={false}
-        />
+        <>
+          <FlatList
+            data={pagedSpendings}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id.toString()}
+            scrollEnabled={false}
+          />
+          <PageNumbers page={safePage} pageCount={pageCount} onChange={setPage} />
+        </>
       )}
     </View>
   );
@@ -157,12 +188,20 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: Spacing.sm,
   },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
   chipScroll: {
-    marginBottom: Spacing.md,
+    flexGrow: 1,
+    flexShrink: 1,
   },
   chipRow: {
     gap: Spacing.sm,
     paddingRight: Spacing.sm,
+    alignItems: 'center',
   },
   chip: {
     borderWidth: 1,

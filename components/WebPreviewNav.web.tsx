@@ -43,6 +43,7 @@ export const WebPreviewNav = () => {
     }
 
     if (key === 'history') {
+      loadSamplePreviewData();
       loadSampleHistoryData();
       router.replace('/history');
       return;

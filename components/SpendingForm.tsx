@@ -11,26 +11,30 @@ import {
 } from 'react-native';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 import { Category } from '../services/categoryService';
-
-const QUICK_AMOUNTS = [5, 10, 20, 50];
+import { Spending } from '../services/spendingService';
 
 interface SpendingFormProps {
   categories: Category[];
-  onAddSpending: (categoryId: number, amount: number, description?: string) => void | Promise<void>;
+  initialSpending?: Spending | null;
+  onSaveSpending: (categoryId: number, amount: number, description?: string) => void | Promise<void>;
   onClose?: () => void;
 }
 
 export const SpendingForm: React.FC<SpendingFormProps> = ({
   categories,
-  onAddSpending,
+  initialSpending,
+  onSaveSpending,
   onClose,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(
-    categories.length > 0 ? categories[0].id : null
+    initialSpending?.category_id ?? (categories.length > 0 ? categories[0].id : null)
   );
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState(initialSpending?.description ?? '');
+  const [amount, setAmount] = useState(
+    initialSpending ? String(initialSpending.amount) : ''
+  );
+  const isEditing = Boolean(initialSpending);
 
   useEffect(() => {
     if (categories.length === 0) {
@@ -57,7 +61,11 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({
       return;
     }
 
-    await onAddSpending(selectedCategory, parsedAmount, description || undefined);
+    await onSaveSpending(selectedCategory, parsedAmount, description || undefined);
+    if (isEditing) {
+      onClose?.();
+      return;
+    }
     setDescription('');
     setAmount('');
   };
@@ -75,7 +83,7 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Quick spending</Text>
+        <Text style={styles.title}>Spendings</Text>
         {onClose ? (
           <TouchableOpacity onPress={onClose} hitSlop={8}>
             <Text style={styles.closeText}>Done</Text>
@@ -139,21 +147,8 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({
           placeholder="0.00"
           placeholderTextColor={Colors.textSecondary}
           keyboardType="decimal-pad"
-          autoFocus
+          autoFocus={!isEditing}
         />
-        <View style={styles.quickRow}>
-          {QUICK_AMOUNTS.map((value) => (
-            <TouchableOpacity
-              key={value}
-              style={[styles.quickChip, amount === String(value) && styles.quickChipActive]}
-              onPress={() => setAmount(String(value))}
-            >
-              <Text style={[styles.quickText, amount === String(value) && styles.quickTextActive]}>
-                ${value}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       </View>
 
       <View style={styles.inputGroup}>
@@ -168,9 +163,8 @@ export const SpendingForm: React.FC<SpendingFormProps> = ({
       </View>
 
       <TouchableOpacity style={styles.button} onPress={handleAdd}>
-        <Text style={styles.buttonText}>Add spending</Text>
+        <Text style={styles.buttonText}>{isEditing ? 'Save spending' : 'Add spending'}</Text>
       </TouchableOpacity>
-      <Text style={styles.hint}>Stays open so you can add more</Text>
     </View>
   );
 };
@@ -179,14 +173,13 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.cardBackground,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    padding: Spacing.md,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   title: {
     fontSize: FontSizes.lg,
@@ -199,10 +192,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   pickerContainer: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   label: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     color: Colors.textSecondary,
     marginBottom: Spacing.xs,
   },
@@ -212,7 +205,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     paddingHorizontal: Spacing.md,
-    minHeight: 50,
+    minHeight: 40,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -262,57 +255,32 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inputGroup: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   input: {
     backgroundColor: Colors.background,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    minHeight: 40,
     color: Colors.textPrimary,
     fontSize: FontSizes.md,
-  },
-  quickRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  quickChip: {
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 999,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-  },
-  quickChipActive: {
-    backgroundColor: Colors.primaryGreen,
-    borderColor: Colors.primaryGreen,
-  },
-  quickText: {
-    color: Colors.textSecondary,
-    fontSize: FontSizes.sm,
-  },
-  quickTextActive: {
-    color: Colors.textPrimary,
-    fontWeight: '600',
   },
   button: {
     backgroundColor: Colors.primaryGreen,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    paddingVertical: Spacing.sm,
+    minHeight: 40,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.xs,
   },
   buttonText: {
     color: Colors.textPrimary,
     fontSize: FontSizes.md,
     fontWeight: 'bold',
-  },
-  hint: {
-    color: Colors.textSecondary,
-    fontSize: FontSizes.sm,
-    textAlign: 'center',
-    marginTop: Spacing.sm,
   },
   noCategories: {
     color: Colors.textSecondary,

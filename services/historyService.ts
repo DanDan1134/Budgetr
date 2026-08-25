@@ -3,6 +3,9 @@ import { getCurrentBudget } from './budgetService';
 import { getCategories } from './categoryService';
 import { deleteAllSpendings, getSpendings } from './spendingService';
 import { calculateCategorySpent, calculateTotalAllocated, calculateTotalSpent } from '../utils/calculations';
+import { buildMonthSummaries, type MonthSpending, type MonthSummary } from '../utils/monthlyHistory';
+
+export type { MonthSummary, MonthSpending } from '../utils/monthlyHistory';
 
 export interface HistoryPeriod {
   id: number;
@@ -124,6 +127,33 @@ export const closeCurrentPeriod = async (): Promise<boolean> => {
 export const getHistoryPeriods = async (): Promise<HistoryPeriod[]> => {
   const db = getDatabase();
   return db.getAllAsync<HistoryPeriod>('SELECT * FROM periods ORDER BY closed_at DESC');
+};
+
+export const getMonthlyHistory = async (): Promise<MonthSummary[]> => {
+  const categories = await getCategories();
+  const spendings = await getSpendings();
+  const db = getDatabase();
+  const archived = await db.getAllAsync<HistorySpending>(
+    'SELECT * FROM period_spendings ORDER BY spent_at DESC'
+  );
+
+  const liveItems: MonthSpending[] = spendings.map((spending) => ({
+    key: `live-${spending.id}`,
+    categoryName: categories.find((category) => category.id === spending.category_id)?.name ?? 'Unknown',
+    description: spending.description,
+    amount: spending.amount,
+    spentAt: spending.created_at,
+  }));
+
+  const archivedItems: MonthSpending[] = archived.map((spending) => ({
+    key: `archive-${spending.id}`,
+    categoryName: spending.category_name,
+    description: spending.description,
+    amount: spending.amount,
+    spentAt: spending.spent_at,
+  }));
+
+  return buildMonthSummaries([...liveItems, ...archivedItems]);
 };
 
 export const deleteHistoryPeriod = async (periodId: number): Promise<void> => {
